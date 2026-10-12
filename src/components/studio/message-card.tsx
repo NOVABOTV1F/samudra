@@ -1,3 +1,4 @@
+import { Volume2 } from "lucide-react";
 import { useMemo } from "react";
 import { WaveMark } from "@/components/studio/wave-mark";
 import { MarkdownView } from "@/components/studio/markdown-view";
@@ -25,6 +26,15 @@ export function MessageCard({
   );
   const isUser = message.role === "user";
   let codeCursor = 0;
+
+  function speak(text: string) {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text.slice(0, 3000));
+    u.lang = "id-ID";
+    u.rate = 1;
+    window.speechSynthesis.speak(u);
+  }
 
   return (
     <article className={cn("flex gap-3", isUser ? "flex-row-reverse" : "flex-row")}>
@@ -57,7 +67,7 @@ export function MessageCard({
               <figure className="overflow-hidden rounded-2xl bg-tide shadow-[var(--shadow-border)]">
                 <img
                   src={message.imageUrl}
-                  alt={message.content || "Gambar dari Samudra"}
+                  alt={message.content || "Gambar dari ZUZUXF_AI"}
                   className="max-h-[28rem] w-full object-cover"
                 />
                 <figcaption className="flex items-center justify-between gap-2 px-3 py-2">
@@ -65,9 +75,9 @@ export function MessageCard({
                   <button
                     type="button"
                     className="h-9 rounded-lg px-3 text-xs text-mist hover:text-ink"
-                    onClick={() => downloadDataUrl("samudra.png", message.imageUrl!)}
+                    onClick={() => downloadDataUrl("zuzuxf-ai.png", message.imageUrl!)}
                   >
-                    Unduh
+                    Unduh Gambar
                   </button>
                 </figcaption>
               </figure>
@@ -118,14 +128,22 @@ export function MessageCard({
             })}
 
             {streaming && !message.content && !message.imageUrl ? (
-              <p className="tide-shimmer text-sm">Menyelam ke jawaban…</p>
+              <p className="tide-shimmer text-sm">Menyiapkan jawaban…</p>
             ) : null}
           </div>
         )}
 
         {!isUser && !streaming && message.content && !message.error ? (
-          <div className="mt-2 flex justify-end">
-            <CopyButton text={message.content} label="Salin jawaban" />
+          <div className="mt-2 flex justify-end gap-1">
+            <button
+              type="button"
+              className="inline-flex h-8 items-center gap-1 rounded-lg px-2 text-xs text-mist hover:text-ink"
+              onClick={() => speak(message.content)}
+              aria-label="Baca suara"
+            >
+              <Volume2 className="size-3.5" /> Bicara
+            </button>
+            <CopyButton text={message.content} label="Salin" />
           </div>
         ) : null}
       </div>

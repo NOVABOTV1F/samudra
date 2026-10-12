@@ -1,4 +1,4 @@
-import { ImageIcon, Paperclip, Send, Square, Type } from "lucide-react";
+import { ImageIcon, Mic, Paperclip, Send, Square, Type } from "lucide-react";
 import { useEffect, useRef, type ChangeEvent, type KeyboardEvent, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,7 +24,6 @@ export function Composer({
   onChange: (value: string) => void;
   mode: StudioMode;
   onMode: (mode: StudioMode) => void;
-  /** V1 = Gemini, V2 = Groq */
   aiVersion: ImageVersion;
   onAiVersion: (v: ImageVersion) => void;
   busy: boolean;
@@ -34,6 +33,7 @@ export function Composer({
 }) {
   const ref = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const recognitionRef = useRef<{ stop: () => void } | null>(null);
 
   useEffect(() => {
     const el = ref.current;
@@ -56,11 +56,36 @@ export function Composer({
     e.target.value = "";
   }
 
-  const overLimit = value.length > MAX;
-  const canSend = value.trim().length > 0 && !busy;
+  function startVoice() {
+    const SR =
+      (window as unknown as { SpeechRecognition?: new () => SpeechRecognition; webkitSpeechRecognition?: new () => SpeechRecognition })
+        .SpeechRecognition ||
+      (window as unknown as { webkitSpeechRecognition?: new () => SpeechRecognition }).webkitSpeechRecognition;
+    if (!SR) return;
+    const rec = new SR();
+    rec.lang = "id-ID";
+    rec.interimResults = false;
+    rec.onresult = (ev: SpeechRecognitionEvent) => {
+      const text = ev.results[0]?.[0]?.transcript ?? "";
+      if (text) onChange(value ? `${value} ${text}` : text);
+    };
+    rec.onerror = () => {
+      recognitionRef.current = null;
+    };
+    rec.onend = () => {
+      recognitionRef.current = null;
+    };
+    recognitionRef.current = rec;
+    rec.start();
+  }
+
+  const canSend = value.trim().length > 0 && !busy && value.length <= MAX;
 
   return (
     <div className="mx-auto w-full max-w-3xl px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 md:px-4">
+      <p className="mb-1.5 px-1 text-[11px] text-mist">
+        V1 = Lebih lengkap &amp; teliti · V2 = Lebih cepat menjawab
+      </p>
       <div className="rounded-2xl bg-tide/90 p-2 shadow-[var(--shadow-border)]">
         <Textarea
           ref={ref}
@@ -70,8 +95,8 @@ export function Composer({
           onKeyDown={onKeyDown}
           placeholder={
             mode === "image"
-              ? "Deskripsikan gambar yang ingin dibuat…"
-              : "Tanya apa saja, minta kode, atau ketik: tolong ambilin isi web ini [url]…"
+              ? "Deskripsikan gambar… atau ketik: buat gambar: kucing"
+              : "Tanya apa saja…"
           }
           aria-label={mode === "image" ? "Deskripsi gambar" : "Pesan"}
           className="min-h-12 max-h-52 px-3 py-2.5"
@@ -87,20 +112,9 @@ export function Composer({
             />
           </div>
 
-          {/* V1 = Gemini, V2 = Groq — selalu tampil */}
           <div className="flex rounded-xl bg-depth p-1">
-            <ModeChip
-              active={aiVersion === "1"}
-              onClick={() => onAiVersion("1")}
-              icon={<span className="text-[10px] font-bold">V1</span>}
-              label="Gemini"
-            />
-            <ModeChip
-              active={aiVersion === "2"}
-              onClick={() => onAiVersion("2")}
-              icon={<span className="text-[10px] font-bold">V2</span>}
-              label="Groq"
-            />
+            <ModeChip active={aiVersion === "1"} onClick={() => onAiVersion("1")} icon={null} label="V1" />
+            <ModeChip active={aiVersion === "2"} onClick={() => onAiVersion("2")} icon={null} label="V2" />
           </div>
 
           {onFile ? (
@@ -114,10 +128,13 @@ export function Composer({
             </>
           ) : null}
 
-          <span className={cn("ml-auto pr-2 font-mono text-[11px] tabular-nums", overLimit ? "text-danger" : "text-mist")}>
-            {value.length}/{MAX}
-            {overLimit ? " → jadi file" : ""}
-          </span>
+          <Hint label="Ketik pakai suara">
+            <Button variant="quiet" size="icon" aria-label="Mikrofon" onClick={startVoice}>
+              <Mic className="size-4" />
+            </Button>
+          </Hint>
+
+          <span className="ml-auto" />
 
           {busy ? (
             <Hint label="Hentikan">
@@ -164,3 +181,17 @@ function ModeChip({
     </button>
   );
 }
+
+// Minimal SpeechRecognition types for browsers that support it
+type SpeechRecognition = {
+  lang: string;
+  interimResults: boolean;
+  start: () => void;
+  stop: () => void;
+  onresult: ((ev: SpeechRecognitionEvent) => void) | null;
+  onerror: ((ev: Event) => void) | null;
+  onend: (() => void) | null;
+};
+type SpeechRecognitionEvent = {
+  results: { [index: number]: { [index: number]: { transcript: string } } };
+};
