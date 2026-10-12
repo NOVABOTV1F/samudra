@@ -13,8 +13,8 @@ export function Composer({
   onChange,
   mode,
   onMode,
-  imageVersion,
-  onImageVersion,
+  aiVersion,
+  onAiVersion,
   busy,
   onSend,
   onStop,
@@ -24,8 +24,9 @@ export function Composer({
   onChange: (value: string) => void;
   mode: StudioMode;
   onMode: (mode: StudioMode) => void;
-  imageVersion: ImageVersion;
-  onImageVersion: (v: ImageVersion) => void;
+  /** V1 = Gemini, V2 = Groq */
+  aiVersion: ImageVersion;
+  onAiVersion: (v: ImageVersion) => void;
   busy: boolean;
   onSend: () => void;
   onStop: () => void;
@@ -86,22 +87,21 @@ export function Composer({
             />
           </div>
 
-          {mode === "image" ? (
-            <div className="flex rounded-xl bg-depth p-1">
-              <ModeChip
-                active={imageVersion === "1"}
-                onClick={() => onImageVersion("1")}
-                icon={<span className="text-[10px] font-bold">V1</span>}
-                label="Versi 1"
-              />
-              <ModeChip
-                active={imageVersion === "2"}
-                onClick={() => onImageVersion("2")}
-                icon={<span className="text-[10px] font-bold">V2</span>}
-                label="Versi 2"
-              />
-            </div>
-          ) : null}
+          {/* V1 = Gemini, V2 = Groq — selalu tampil */}
+          <div className="flex rounded-xl bg-depth p-1">
+            <ModeChip
+              active={aiVersion === "1"}
+              onClick={() => onAiVersion("1")}
+              icon={<span className="text-[10px] font-bold">V1</span>}
+              label="Gemini"
+            />
+            <ModeChip
+              active={aiVersion === "2"}
+              onClick={() => onAiVersion("2")}
+              icon={<span className="text-[10px] font-bold">V2</span>}
+              label="Groq"
+            />
+          </div>
 
           {onFile ? (
             <>
@@ -155,7 +155,7 @@ function ModeChip({
       onClick={onClick}
       className={cn(
         "inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-colors duration-150",
-        active ? "bg-tide text-foam" : "text-mist hover:text-ink",
+        active ? "bg-accent/25 text-foam ring-1 ring-accent/40" : "text-mist hover:text-ink",
       )}
       aria-pressed={active}
     >
