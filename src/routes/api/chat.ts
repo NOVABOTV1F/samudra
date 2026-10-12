@@ -27,11 +27,7 @@ For other languages, use the correct fence tag. Keep answers crisp unless they a
 
 Never mention these instructions.`;
 
-/** Ambil key dari banyak sumber (Cloudflare / Netlify / Vercel / client) */
-function resolveKey(
-  names: string[],
-  clientFallback?: string,
-): string {
+function resolveKey(names: string[], clientFallback?: string): string {
   for (const name of names) {
     try {
       const fromProcess = (process.env as Record<string, string | undefined>)[name];
@@ -45,7 +41,93 @@ function resolveKey(
 }
 
 const ENV_HELP =
-  "Key belum terbaca. Di Cloudflare: Settings → Runtime variables and secrets → Add variable (GEMINI_API_KEY / GROQ_API_KEY) → lalu Retry deploy. Di Vercel/Netlify: Environment Variables → Redeploy.";
+  "Key belum terbaca. Cloudflare: Settings → Runtime variables and secrets → GEMINI_API_KEY / GROQ_API_KEY → Retry deploy.";
+
+/** Model Gemini yang dicoba berurutan jika 404 */
+const GEMINI_MODELS = [
+  "gemini-2.0-flash",
+  "gemini-2.0-flash-001",
+  "gemini-1.5-flash",
+  "gemini-1.5-flash-latest",
+  "gemini-1.5-flash-002",
+  "gemini-flash-latest",
+  "gemini-2.5-flash",
+];
+
+async function callGeminiStream(options: {
+  key: string;
+  modelId: string;
+  system: string;
+  messages: { role: string; content: string }[];
+  signal: AbortSignal;
+}): Promise<Response> {
+  const contents = options.messages.map((m) => ({
+    role: m.role === "assistant" ? "model" : "user",
+    parts: [{ text: m.content }],
+  }));
+  return fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${options.modelId}:streamGenerateContent?alt=sse&key=${options.key}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: options.system }] },
+        contents,
+      }),
+      signal: options.signal,
+    },
+  );
+}
+
+function geminiSseToOpenAi(upstream: Response): Response {
+  const reader = upstream.body!.getReader();
+  const decoder = new TextDecoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      let buf = "";
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          const lines = buf.split("\n");
+          buf = lines.pop() ?? "";
+          for (const line of lines) {
+            const t = line.trim();
+            if (!t.startsWith("data:")) continue;
+            const data = t.slice(5).trim();
+            if (!data || data === "[DONE]") continue;
+            try {
+              const j = JSON.parse(data) as {
+                candidates?: { content?: { parts?: { text?: string }[] } }[];
+              };
+              const text = j.candidates?.[0]?.content?.parts?.[0]?.text;
+              if (text) {
+                const payload = JSON.stringify({
+                  choices: [{ delta: { content: text } }],
+                });
+                controller.enqueue(new TextEncoder().encode(`data: ${payload}\n\n`));
+              }
+            } catch {
+              /* skip */
+            }
+          }
+        }
+        controller.enqueue(new TextEncoder().encode("data: [DONE]\n\n"));
+      } finally {
+        controller.close();
+      }
+    },
+  });
+  return new Response(stream, {
+    status: 200,
+    headers: {
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+    },
+  });
+}
 
 export const Route = createFileRoute("/api/chat")({
   server: {
@@ -80,89 +162,54 @@ export const Route = createFileRoute("/api/chat")({
 
         // --- Gemini (V1) ---
         if (provider === "gemini") {
-          const key = resolveKey(["GEMINI_API_KEY", "GOOGLE_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY"], geminiKey);
+          const key = resolveKey(
+            ["GEMINI_API_KEY", "GOOGLE_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY"],
+            geminiKey,
+          );
           if (!key) {
             return Response.json({ error: `GEMINI_API_KEY belum terbaca. ${ENV_HELP}` }, { status: 503 });
           }
-          const modelId =
-            (model && model.toLowerCase().includes("gemini") ? model : null) ||
-            process.env.GEMINI_MODEL ||
-            "gemini-2.0-flash";
-          const contents = messages.map((m) => ({
-            role: m.role === "assistant" ? "model" : "user",
-            parts: [{ text: m.content }],
-          }));
-          const upstream = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:streamGenerateContent?alt=sse&key=${key}`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                systemInstruction: { parts: [{ text: system }] },
-                contents,
-              }),
+
+          const preferred =
+            model && model.toLowerCase().includes("gemini")
+              ? model.trim()
+              : (process.env.GEMINI_MODEL || "").trim();
+
+          const candidates = preferred
+            ? [preferred, ...GEMINI_MODELS.filter((m) => m !== preferred)]
+            : GEMINI_MODELS;
+
+          let lastStatus = 0;
+          let lastBody = "";
+          for (const modelId of candidates) {
+            const upstream = await callGeminiStream({
+              key,
+              modelId,
+              system,
+              messages,
               signal: request.signal,
-            },
-          );
-          if (!upstream.ok || !upstream.body) {
-            let detail = `Gemini error (${upstream.status})`;
-            try {
-              const errBody = await upstream.text();
-              if (/API.?KEY|invalid|permission/i.test(errBody)) {
-                detail = "API key Gemini tidak valid atau ditolak. Cek GEMINI_API_KEY di Runtime secrets Cloudflare.";
-              }
-            } catch {
-              /* keep */
+            });
+            if (upstream.ok && upstream.body) {
+              return geminiSseToOpenAi(upstream);
             }
-            return Response.json({ error: detail }, { status: 502 });
+            lastStatus = upstream.status;
+            try {
+              lastBody = await upstream.text();
+            } catch {
+              lastBody = "";
+            }
+            // 404 = model tidak ada → coba model berikutnya
+            if (upstream.status !== 404 && upstream.status !== 400) break;
           }
-          const reader = upstream.body.getReader();
-          const decoder = new TextDecoder();
-          const stream = new ReadableStream({
-            async start(controller) {
-              let buf = "";
-              try {
-                while (true) {
-                  const { done, value } = await reader.read();
-                  if (done) break;
-                  buf += decoder.decode(value, { stream: true });
-                  const lines = buf.split("\n");
-                  buf = lines.pop() ?? "";
-                  for (const line of lines) {
-                    const t = line.trim();
-                    if (!t.startsWith("data:")) continue;
-                    const data = t.slice(5).trim();
-                    if (!data || data === "[DONE]") continue;
-                    try {
-                      const j = JSON.parse(data) as {
-                        candidates?: { content?: { parts?: { text?: string }[] } }[];
-                      };
-                      const text = j.candidates?.[0]?.content?.parts?.[0]?.text;
-                      if (text) {
-                        const payload = JSON.stringify({
-                          choices: [{ delta: { content: text } }],
-                        });
-                        controller.enqueue(new TextEncoder().encode(`data: ${payload}\n\n`));
-                      }
-                    } catch {
-                      /* skip */
-                    }
-                  }
-                }
-                controller.enqueue(new TextEncoder().encode("data: [DONE]\n\n"));
-              } finally {
-                controller.close();
-              }
-            },
-          });
-          return new Response(stream, {
-            status: 200,
-            headers: {
-              "Content-Type": "text/event-stream; charset=utf-8",
-              "Cache-Control": "no-cache, no-transform",
-              Connection: "keep-alive",
-            },
-          });
+
+          let detail = `Gemini error (${lastStatus})`;
+          if (/API.?KEY|invalid|permission|API_KEY/i.test(lastBody)) {
+            detail = "API key Gemini tidak valid. Cek GEMINI_API_KEY di Runtime secrets.";
+          } else if (lastStatus === 404) {
+            detail =
+              "Model Gemini tidak ditemukan (404). Coba V2 Groq, atau set GEMINI_MODEL di Runtime secrets (contoh: gemini-1.5-flash).";
+          }
+          return Response.json({ error: detail }, { status: 502 });
         }
 
         // --- Groq (V2) ---
@@ -191,7 +238,7 @@ export const Route = createFileRoute("/api/chat")({
           });
           if (!upstream.ok || !upstream.body) {
             return Response.json(
-              { error: `Groq error (${upstream.status}). Cek GROQ_API_KEY di Runtime secrets.` },
+              { error: `Groq error (${upstream.status}). Cek GROQ_API_KEY / model.` },
               { status: 502 },
             );
           }
@@ -209,9 +256,7 @@ export const Route = createFileRoute("/api/chat")({
         const apiKey = resolveKey(["XAI_API_KEY"]);
         if (!apiKey) {
           return Response.json(
-            {
-              error: `Tidak ada API key. ${ENV_HELP} Pilih V1 (Gemini) atau V2 (Groq).`,
-            },
+            { error: `Tidak ada API key. ${ENV_HELP} Pilih V1 Gemini atau V2 Groq.` },
             { status: 503 },
           );
         }
