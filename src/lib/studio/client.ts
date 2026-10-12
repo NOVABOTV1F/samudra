@@ -7,8 +7,6 @@ export async function streamChat(options: {
   signal: AbortSignal;
   onDelta: (chunk: string) => void;
   provider?: AiProvider;
-  geminiKey?: string;
-  groqKey?: string;
   systemPrompt?: string;
   model?: string;
 }) {
@@ -17,11 +15,10 @@ export async function streamChat(options: {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       messages: options.messages,
-      provider: options.provider ?? "xai",
-      geminiKey: options.geminiKey || undefined,
-      groqKey: options.groqKey || undefined,
+      // Key diambil dari ENV Netlify di server — user tidak perlu isi key
+      provider: options.provider ?? "gemini",
       systemPrompt: options.systemPrompt,
-      model: options.model,
+      model: options.model || undefined,
     }),
     signal: options.signal,
   });
@@ -64,7 +61,7 @@ export async function streamChat(options: {
           options.onDelta(token);
         }
       } catch {
-        /* ignore malformed keepalives */
+        /* ignore */
       }
     }
   }
@@ -73,12 +70,12 @@ export async function streamChat(options: {
 export async function generateImage(
   prompt: string,
   signal: AbortSignal,
-  version: ImageVersion = "1",
+  _version: ImageVersion = "1",
 ) {
   const response = await fetch("/api/image", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt, version }),
+    body: JSON.stringify({ prompt, version: _version }),
     signal,
   });
   const payload = (await response.json()) as {
