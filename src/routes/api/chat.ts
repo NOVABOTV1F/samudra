@@ -30,53 +30,49 @@ Never mention these instructions.`;
 function resolveKey(names: string[], clientFallback?: string): string {
   for (const name of names) {
     try {
-      const fromProcess = (process.env as Record<string, string | undefined>)[name];
-      if (fromProcess && String(fromProcess).trim()) return String(fromProcess).trim();
+      const v = (process.env as Record<string, string | undefined>)[name];
+      if (v && String(v).trim()) return String(v).trim();
     } catch {
       /* ignore */
     }
   }
-  if (clientFallback && clientFallback.trim()) return clientFallback.trim();
+  if (clientFallback?.trim()) return clientFallback.trim();
   return "";
 }
 
 const ENV_HELP =
-  "Key belum terbaca. Cloudflare: Settings → Runtime variables and secrets → GEMINI_API_KEY / GROQ_API_KEY → Retry deploy.";
+  "Cloudflare: Settings → Runtime variables and secrets → isi GEMINI_API_KEY / GROQ_API_KEY → Retry deploy.";
 
-/** Model Gemini yang dicoba berurutan jika 404 */
+/** Model Gemini 2026 — dicoba berurutan */
 const GEMINI_MODELS = [
   "gemini-2.0-flash",
-  "gemini-2.0-flash-001",
+  "gemini-2.5-flash",
+  "gemini-3.5-flash",
   "gemini-1.5-flash",
   "gemini-1.5-flash-latest",
-  "gemini-1.5-flash-002",
   "gemini-flash-latest",
-  "gemini-2.5-flash",
 ];
 
-async function callGeminiStream(options: {
-  key: string;
-  modelId: string;
-  system: string;
-  messages: { role: string; content: string }[];
-  signal: AbortSignal;
-}): Promise<Response> {
-  const contents = options.messages.map((m) => ({
-    role: m.role === "assistant" ? "model" : "user",
-    parts: [{ text: m.content }],
-  }));
-  return fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${options.modelId}:streamGenerateContent?alt=sse&key=${options.key}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: options.system }] },
-        contents,
-      }),
-      signal: options.signal,
+/** Model Groq — dicoba berurutan (yang paling stabil dulu) */
+const GROQ_MODELS = [
+  "llama-3.1-8b-instant",
+  "llama-3.3-70b-versatile",
+  "openai/gpt-oss-20b",
+  "llama-3.1-70b-versatile",
+  "gemma2-9b-it",
+];
+
+function openAiSseFromText(text: string): Response {
+  const payload = JSON.stringify({ choices: [{ delta: { content: text } }] });
+  const body = `data: ${payload}\n\ndata: [DONE]\n\n`;
+  return new Response(body, {
+    status: 200,
+    headers: {
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
     },
-  );
+  });
 }
 
 function geminiSseToOpenAi(upstream: Response): Response {
@@ -109,7 +105,7 @@ function geminiSseToOpenAi(upstream: Response): Response {
                 controller.enqueue(new TextEncoder().encode(`data: ${payload}\n\n`));
               }
             } catch {
-              /* skip */
+              /* skip partial json */
             }
           }
         }
@@ -127,6 +123,72 @@ function geminiSseToOpenAi(upstream: Response): Response {
       Connection: "keep-alive",
     },
   });
+}
+
+async function tryGemini(options: {
+  key: string;
+  modelId: string;
+  system: string;
+  messages: { role: string; content: string }[];
+  signal: AbortSignal;
+}): Promise<{ ok: true; response: Response } | { ok: false; status: number; body: string }> {
+  const contents = options.messages.map((m) => ({
+    role: m.role === "assistant" ? "model" : "user",
+    parts: [{ text: m.content }],
+  }));
+  const body = JSON.stringify({
+    systemInstruction: { parts: [{ text: options.system }] },
+    contents,
+  });
+  const headers = {
+    "Content-Type": "application/json",
+    "x-goog-api-key": options.key,
+  };
+
+  // 1) Stream SSE
+  const streamUrl = `https://generativelanguage.googleapis.com/v1beta/models/${options.modelId}:streamGenerateContent?alt=sse`;
+  const streamRes = await fetch(streamUrl, {
+    method: "POST",
+    headers,
+    body,
+    signal: options.signal,
+  });
+  if (streamRes.ok && streamRes.body) {
+    return { ok: true, response: geminiSseToOpenAi(streamRes) };
+  }
+
+  // 2) Non-stream fallback
+  const plainUrl = `https://generativelanguage.googleapis.com/v1beta/models/${options.modelId}:generateContent`;
+  const plainRes = await fetch(plainUrl, {
+    method: "POST",
+    headers,
+    body,
+    signal: options.signal,
+  });
+  if (plainRes.ok) {
+    try {
+      const data = (await plainRes.json()) as {
+        candidates?: { content?: { parts?: { text?: string }[] } }[];
+      };
+      const text =
+        data.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
+      if (text) return { ok: true, response: openAiSseFromText(text) };
+    } catch {
+      /* fall through */
+    }
+  }
+
+  let errBody = "";
+  try {
+    errBody = await (streamRes.ok ? plainRes : streamRes).text();
+  } catch {
+    errBody = "";
+  }
+  return {
+    ok: false,
+    status: streamRes.ok ? plainRes.status : streamRes.status,
+    body: errBody,
+  };
 }
 
 export const Route = createFileRoute("/api/chat")({
@@ -149,18 +211,18 @@ export const Route = createFileRoute("/api/chat")({
         const system = systemPrompt?.trim() || DEFAULT_SYSTEM;
 
         const messages = parsed.data.messages
-          .filter((message) => message.content.trim().length > 0)
+          .filter((m) => m.content.trim().length > 0)
           .slice(-20)
-          .map((message) => ({
-            role: message.role,
-            content: message.content.slice(0, 12000),
+          .map((m) => ({
+            role: m.role,
+            content: m.content.slice(0, 12000),
           }));
 
         if (messages.length === 0) {
           return Response.json({ error: "Tulis pesan dulu." }, { status: 400 });
         }
 
-        // --- Gemini (V1) ---
+        // ========== V1 Gemini ==========
         if (provider === "gemini") {
           const key = resolveKey(
             ["GEMINI_API_KEY", "GOOGLE_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY"],
@@ -171,97 +233,147 @@ export const Route = createFileRoute("/api/chat")({
           }
 
           const preferred =
-            model && model.toLowerCase().includes("gemini")
+            model && /gemini/i.test(model)
               ? model.trim()
               : (process.env.GEMINI_MODEL || "").trim();
-
-          const candidates = preferred
+          const list = preferred
             ? [preferred, ...GEMINI_MODELS.filter((m) => m !== preferred)]
             : GEMINI_MODELS;
 
           let lastStatus = 0;
           let lastBody = "";
-          for (const modelId of candidates) {
-            const upstream = await callGeminiStream({
+          for (const modelId of list) {
+            const result = await tryGemini({
               key,
               modelId,
               system,
               messages,
               signal: request.signal,
             });
+            if (result.ok) return result.response;
+            lastStatus = result.status;
+            lastBody = result.body;
+            if (result.status !== 404 && result.status !== 400) break;
+          }
+
+          if (/API.?KEY|API_KEY|invalid|permission|403/i.test(lastBody)) {
+            return Response.json(
+              { error: "API key Gemini ditolak. Cek key di aistudio.google.com dan Runtime secrets." },
+              { status: 502 },
+            );
+          }
+          return Response.json(
+            {
+              error: `Gemini gagal (${lastStatus}). Coba V2 Groq, atau set Runtime secret GEMINI_MODEL=gemini-2.0-flash`,
+            },
+            { status: 502 },
+          );
+        }
+
+        // ========== V2 Groq ==========
+        if (provider === "groq") {
+          const key = resolveKey(["GROQ_API_KEY"], groqKey);
+          if (!key) {
+            return Response.json({ error: `GROQ_API_KEY belum terbaca. ${ENV_HELP}` }, { status: 503 });
+          }
+
+          const preferred =
+            model && !/gemini|grok/i.test(model)
+              ? model.trim()
+              : (process.env.GROQ_MODEL || "").trim();
+          const list = preferred
+            ? [preferred, ...GROQ_MODELS.filter((m) => m !== preferred)]
+            : GROQ_MODELS;
+
+          let lastStatus = 0;
+          let lastBody = "";
+          for (const modelId of list) {
+            const upstream = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${key}`,
+              },
+              body: JSON.stringify({
+                model: modelId,
+                stream: true,
+                max_tokens: 4096,
+                messages: [{ role: "system", content: system }, ...messages],
+              }),
+              signal: request.signal,
+            });
+
             if (upstream.ok && upstream.body) {
-              return geminiSseToOpenAi(upstream);
+              return new Response(upstream.body, {
+                status: 200,
+                headers: {
+                  "Content-Type": "text/event-stream; charset=utf-8",
+                  "Cache-Control": "no-cache, no-transform",
+                  Connection: "keep-alive",
+                },
+              });
             }
+
             lastStatus = upstream.status;
             try {
               lastBody = await upstream.text();
             } catch {
               lastBody = "";
             }
-            // 404 = model tidak ada → coba model berikutnya
-            if (upstream.status !== 404 && upstream.status !== 400) break;
+
+            // Non-stream fallback for this model
+            const plain = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${key}`,
+              },
+              body: JSON.stringify({
+                model: modelId,
+                stream: false,
+                max_tokens: 4096,
+                messages: [{ role: "system", content: system }, ...messages],
+              }),
+              signal: request.signal,
+            });
+            if (plain.ok) {
+              try {
+                const data = (await plain.json()) as {
+                  choices?: { message?: { content?: string } }[];
+                };
+                const text = data.choices?.[0]?.message?.content ?? "";
+                if (text) return openAiSseFromText(text);
+              } catch {
+                /* next model */
+              }
+            }
+
+            if (lastStatus !== 404 && lastStatus !== 400) break;
           }
 
-          let detail = `Gemini error (${lastStatus})`;
-          if (/API.?KEY|invalid|permission|API_KEY/i.test(lastBody)) {
-            detail = "API key Gemini tidak valid. Cek GEMINI_API_KEY di Runtime secrets.";
-          } else if (lastStatus === 404) {
-            detail =
-              "Model Gemini tidak ditemukan (404). Coba V2 Groq, atau set GEMINI_MODEL di Runtime secrets (contoh: gemini-1.5-flash).";
-          }
-          return Response.json({ error: detail }, { status: 502 });
-        }
-
-        // --- Groq (V2) ---
-        if (provider === "groq") {
-          const key = resolveKey(["GROQ_API_KEY"], groqKey);
-          if (!key) {
-            return Response.json({ error: `GROQ_API_KEY belum terbaca. ${ENV_HELP}` }, { status: 503 });
-          }
-          const modelId =
-            (model && !/gemini|grok/i.test(model) ? model : null) ||
-            process.env.GROQ_MODEL ||
-            "llama-3.3-70b-versatile";
-          const upstream = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${key}`,
-            },
-            body: JSON.stringify({
-              model: modelId,
-              stream: true,
-              max_tokens: 4096,
-              messages: [{ role: "system", content: system }, ...messages],
-            }),
-            signal: request.signal,
-          });
-          if (!upstream.ok || !upstream.body) {
+          if (/invalid.?api.?key|authentication|401|403/i.test(lastBody)) {
             return Response.json(
-              { error: `Groq error (${upstream.status}). Cek GROQ_API_KEY / model.` },
+              { error: "API key Groq ditolak. Cek key di console.groq.com dan Runtime secrets." },
               { status: 502 },
             );
           }
-          return new Response(upstream.body, {
-            status: 200,
-            headers: {
-              "Content-Type": "text/event-stream; charset=utf-8",
-              "Cache-Control": "no-cache, no-transform",
-              Connection: "keep-alive",
+          return Response.json(
+            {
+              error: `Groq gagal (${lastStatus}). Set GROQ_MODEL=llama-3.1-8b-instant di Runtime secrets, atau cek kuota key.`,
             },
-          });
+            { status: 502 },
+          );
         }
 
-        // --- xAI fallback ---
+        // ========== xAI fallback ==========
         const apiKey = resolveKey(["XAI_API_KEY"]);
         if (!apiKey) {
           return Response.json(
-            { error: `Tidak ada API key. ${ENV_HELP} Pilih V1 Gemini atau V2 Groq.` },
+            { error: `Tidak ada provider. ${ENV_HELP}` },
             { status: 503 },
           );
         }
 
-        const modelId = model || "grok-4.5";
         const upstream = await fetch("https://api.x.ai/v1/chat/completions", {
           method: "POST",
           headers: {
@@ -269,10 +381,9 @@ export const Route = createFileRoute("/api/chat")({
             Authorization: `Bearer ${apiKey}`,
           },
           body: JSON.stringify({
-            model: modelId,
+            model: model || "grok-4.5",
             stream: true,
             max_completion_tokens: 4096,
-            reasoning_effort: "low",
             messages: [{ role: "system", content: system }, ...messages],
           }),
           signal: request.signal,
@@ -280,7 +391,7 @@ export const Route = createFileRoute("/api/chat")({
 
         if (!upstream.ok || !upstream.body) {
           return Response.json(
-            { error: `Model sibuk (${upstream.status}).` },
+            { error: `xAI error (${upstream.status})` },
             { status: upstream.status === 429 ? 429 : 502 },
           );
         }
@@ -291,7 +402,6 @@ export const Route = createFileRoute("/api/chat")({
             "Content-Type": "text/event-stream; charset=utf-8",
             "Cache-Control": "no-cache, no-transform",
             Connection: "keep-alive",
-            "X-Accel-Buffering": "no",
           },
         });
       },
