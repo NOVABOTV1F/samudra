@@ -1,0 +1,13 @@
+{
+  "id": "jalur.formulir",
+  "lane": "web",
+  "title": "Form mengumpulkan isian",
+  "keywords": [
+    "form",
+    "formulir",
+    "input",
+    "tombol kirim",
+    "validasi"
+  ],
+  "answer": "Form adalah wadah. `input`, `textarea`, dan `select` adalah isian. `button type=\"submit\"` mengirim, `type=\"button\"` hanya menjalankan skrip.\n\nBeri setiap isian `name` dan `label`. Tanpa label, orang dan pembaca layar tidak tahu kotak itu untuk apa.\n\nCek di browser dulu: kosong atau tidak, format email, angka minimum. Jangan percaya cek di browser sebagai satu-satunya penjaga kalau datanya nanti masuk server."
+}

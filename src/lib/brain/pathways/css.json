@@ -1,0 +1,16 @@
+{
+  "id": "jalur.css",
+  "lane": "web",
+  "title": "CSS mengatur tampilan, bukan isi",
+  "keywords": [
+    "css",
+    "warna",
+    "flex",
+    "grid",
+    "margin",
+    "padding",
+    "kelas",
+    "style"
+  ],
+  "answer": "CSS tidak menambah kalimat. Ia mengatur kotak yang sudah ada di HTML.\n\nUrutan yang berguna: `display` dulu (aliran, flex, atau grid), lalu jarak (`gap`, `padding`, `margin`), baru warna dan huruf.\n\nKelas dipakai ulang. Id untuk satu elemen. Jangan mengulang gaya yang sama di sepuluh tag. Satu kelas, banyak pemakai.\n\nTempel blok `<style>` kalau ingin pemilihnya disebut satu per satu."
+}

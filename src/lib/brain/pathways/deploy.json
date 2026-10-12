@@ -1,0 +1,13 @@
+{
+  "id": "jalur.deploy",
+  "lane": "kerja",
+  "title": "Situs ini bisa di Vercel atau Netlify",
+  "keywords": [
+    "vercel",
+    "netlify",
+    "deploy",
+    "hosting",
+    "publish"
+  ],
+  "answer": "Repo yang sama bisa dibangun di dua tempat.\n\n- Vercel memakai preset bawaan. Nama proyek huruf kecil, misalnya `samudra-laut`. Kalau tertulis not authorized, izinkan aplikasi Vercel membaca repo `samudra`.\n- Netlify membaca `netlify.toml`. Perintahnya `npm run build`, folder terbit `dist`.\n\nChat otak tidak membutuhkan kunci model. Riwayat tetap di peramban pengunjung, bukan di hosting."
+}

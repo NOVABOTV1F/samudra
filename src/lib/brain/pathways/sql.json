@@ -1,0 +1,13 @@
+{
+  "id": "jalur.sql",
+  "lane": "kerja",
+  "title": "Membaca tabel tanpa mengarang isinya",
+  "keywords": [
+    "sql",
+    "database",
+    "tabel",
+    "select",
+    "query"
+  ],
+  "answer": "Tabel punya baris dan kolom. `SELECT kolom FROM tabel WHERE syarat` membaca. `INSERT` menambah, `UPDATE` mengubah, `DELETE` menghapus.\n\nJangan menghapus tanpa `WHERE` yang sudah kamu cek dengan `SELECT` yang sama.\n\nAku tidak terhubung ke databasenya, jadi aku tidak bisa melihat isi tabelmu sampai kamu tempel hasil atau skemanya."
+}

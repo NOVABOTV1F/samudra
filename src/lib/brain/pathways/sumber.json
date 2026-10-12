@@ -1,0 +1,14 @@
+{
+  "id": "jalur.sumber",
+  "lane": "web",
+  "title": "Mengapa URL tidak diambil mentah",
+  "keywords": [
+    "url",
+    "tautan",
+    "ambil isi",
+    "scrape",
+    "sumber web",
+    "view source"
+  ],
+  "answer": "Menempel tautan saja tidak membawa isinya kemari. Situs lain menolak dibaca dari peramban orang, dan server yang diam-diam mengambil URL sembarangan mudah disalahgunakan.\n\nSalin sumbernya: di komputer, lihat source atau salin potongan elemen. Tempel di sini bersama permintaan `bedah komponen ini`.\n\nYang aku kembalikan: tag apa saja, berapa kali, id, kelas, tombol, tautan, input, pemilih CSS, dan nama fungsi."
+}

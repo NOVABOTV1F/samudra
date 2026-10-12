@@ -1,0 +1,12 @@
+{
+  "id": "jalur.json",
+  "lane": "web",
+  "title": "JSON adalah bentuk data, bukan program",
+  "keywords": [
+    "json",
+    "objek",
+    "array",
+    "api response"
+  ],
+  "answer": "JSON menyimpan data: objek `{ \"nama\": \"laut\" }` dan daftar `[1, 2, 3]`.\n\nAturan yang sering membuatnya gagal dibaca: koma di belakang unsur terakhir, kutip satu bukan kutip dua, atau komentar `//` yang tidak diizinkan.\n\nJSON tidak menjalankan fungsi. Kalau sebuah balasan API berisi kode, itu tetap teks sampai programmu dengan sengaja menjalankannya. Jangan lakukan itu pada teks dari orang lain."
+}

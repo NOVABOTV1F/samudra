@@ -1,0 +1,14 @@
+{
+  "id": "jalur.akses",
+  "lane": "web",
+  "title": "Halaman yang bisa dipakai semua orang",
+  "keywords": [
+    "aksesibilitas",
+    "a11y",
+    "keyboard",
+    "label",
+    "kontras",
+    "pembaca layar"
+  ],
+  "answer": "Halaman yang rapi untuk mata belum tentu bisa dipakai.\n\n- Tombol harus tombol, tautan harus tautan.\n- Setiap input punya label.\n- Kontras teks dan latar jangan sewarna.\n- Yang bisa diklik juga bisa dicapai dengan keyboard.\n- Jangan menyampaikan arti hanya dengan warna.\n\nUkuran sentuh yang nyaman sekitar 44 piksel."
+}

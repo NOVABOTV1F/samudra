@@ -1,0 +1,13 @@
+{
+  "id": "jalur.game",
+  "lane": "web",
+  "title": "Game kecil satu berkas",
+  "keywords": [
+    "game",
+    "permainan",
+    "mutiara",
+    "skor",
+    "kanvas"
+  ],
+  "answer": "Minta `buat game mutiara`. Yang tersusun: kanvas, mutiara jatuh, sentuhan menambah skor, semua di satu HTML.\n\nTidak ada mesin game dan tidak ada akun. Kalau ingin aturan lain, sebutkan benda yang dikumpulkan dan apa yang mengurangi skor."
+}

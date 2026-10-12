@@ -1,0 +1,14 @@
+{
+  "id": "jalur.rencana",
+  "lane": "kerja",
+  "title": "Memecah pekerjaan",
+  "keywords": [
+    "rencana",
+    "langkah",
+    "proyek",
+    "jadwal",
+    "mulai dari mana",
+    "todo"
+  ],
+  "answer": "Pecah sampai sebuah langkah bisa selesai dalam satu duduk.\n\n1. Sebut hasil yang kelihatan, bukan kegiatan. \"Halaman menu bisa dibuka\" lebih jelas daripada \"mengerjakan web\".\n2. Urutkan yang menghalangi yang lain. Tanpa isi, desain tidak bisa dinilai.\n3. Berhenti di tiga langkah berikutnya. Daftar dua puluh butir biasanya tidak dikerjakan.\n\nKalau kamu sebut proyeknya, aku susunkan tiga langkah pertama dari jalur ini, bukan janji waktu yang tidak aku tahu."
+}

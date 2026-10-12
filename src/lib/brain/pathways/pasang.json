@@ -1,0 +1,14 @@
+{
+  "id": "jalur.pasang",
+  "lane": "laut",
+  "title": "Pasang surut",
+  "keywords": [
+    "pasang",
+    "surut",
+    "laut",
+    "bulan",
+    "ombak",
+    "arus"
+  ],
+  "answer": "Air laut naik dan turun terutama karena tarikan bulan, dan matahari menambah atau mengurangi tinggi itu.\n\nAnalogi: bulan menarik selimut air. Di sisi yang menghadap bulan selimut menumpuk (pasang). Di sisi yang jauh, bumi sedikit tertarik menjauh dari air, jadi air di sana juga relatif menumpuk.\n\nTiga hal yang sering keliru:\n- Ombak pantai bukan pasang surut. Ombak dibuat angin.\n- Tidak semua pantai punya dua pasang sama tinggi setiap hari.\n- Bulan purnama membuat pasang lebih tinggi (pasang purnama), bukan ombak yang otomatis besar."
+}

@@ -1,0 +1,15 @@
+{
+  "id": "jalur.keamanan",
+  "lane": "web",
+  "title": "Kunci dan isi dari orang lain",
+  "keywords": [
+    "keamanan",
+    "api key",
+    "rahasia",
+    "xss",
+    "token",
+    "password",
+    "sandi"
+  ],
+  "answer": "Kunci API adalah sandi. Jangan menaruhnya di kode yang terlihat pengunjung, di GitHub, atau di chat.\n\nKalau halaman menampilkan teks dari pengunjung, jangan menyisipkannya sebagai HTML mentah. Itu cara skrip orang lain ikut berjalan.\n\nOtak Samudra sengaja tidak memanggil model berbayar. Yang ia baca adalah jalur di situs ini dan teks yang kamu tempel."
+}

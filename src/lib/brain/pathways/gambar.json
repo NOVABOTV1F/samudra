@@ -1,0 +1,13 @@
+{
+  "id": "jalur.gambar",
+  "lane": "studio",
+  "title": "Gambar tanpa model foto",
+  "keywords": [
+    "gambar",
+    "ilustrasi",
+    "svg",
+    "foto",
+    "lukisan"
+  ],
+  "answer": "Mode gambar menggambar SVG di perangkatmu: langit, bulan, dan dua lapis gelombang, plus judul dari kalimatmu.\n\nIni bukan foto dan bukan model gambar berbayar. Tidak ada API key yang dikirim.\n\nUntuk adegan yang lebih kaya, minta halaman HTML. Kanvas di dalam berkas itu bisa bergerak, dan tetap satu file."
+}

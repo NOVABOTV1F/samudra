@@ -1,0 +1,13 @@
+{
+  "id": "jalur.data",
+  "lane": "kerja",
+  "title": "Data yang disimpan di peramban",
+  "keywords": [
+    "localstorage",
+    "simpan",
+    "riwayat",
+    "data",
+    "privasi"
+  ],
+  "answer": "Riwayat percakapan Samudra tersimpan di perambanmu (`localStorage`), di perangkat ini saja. Membersihkan data situs akan menghapusnya.\n\nJangan menempel kunci atau sandi ke dalam percakapan. Otak tidak membutuhkannya, dan teks itu ikut tersimpan di perangkat."
+}

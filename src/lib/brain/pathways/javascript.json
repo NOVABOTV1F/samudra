@@ -1,0 +1,15 @@
+{
+  "id": "jalur.javascript",
+  "lane": "web",
+  "title": "JavaScript adalah perilaku setelah halaman hidup",
+  "keywords": [
+    "javascript",
+    "js",
+    "fungsi",
+    "function",
+    "event",
+    "dom",
+    "kode"
+  ],
+  "answer": "JavaScript berjalan setelah HTML terbaca. Pola yang paling sering:\n\n1. Pilih elemen (`querySelector`).\n2. Dengarkan kejadian (`click`, `input`, `pointerdown`).\n3. Ubah teks, kelas, atau hitungan.\n\nFungsi adalah pekerjaan bernama supaya tidak disalin berkali-kali. `const` untuk nilai yang tidak diganti, `let` untuk nilai yang bergerak seperti skor.\n\nTempel skripnya. Otak akan menyebut nama fungsinya dan tidak mengeksekusinya."
+}

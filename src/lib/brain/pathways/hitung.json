@@ -1,0 +1,14 @@
+{
+  "id": "jalur.hitung",
+  "lane": "alat",
+  "title": "Hitungan sederhana",
+  "keywords": [
+    "hitung",
+    "berapa",
+    "kali",
+    "bagi",
+    "persen",
+    "tambah"
+  ],
+  "answer": "Tulis ekspresinya langsung, misalnya `hitung (120 + 30) * 2` atau `berapa 15% dari 200` dengan bentuk `0.15 * 200`.\n\nOtak hanya menghitung angka dan operator `+ - * / %` serta tanda kurung. Tidak ada pangkat dan tidak ada nama variabel, supaya tidak ada kode lain yang ikut jalan."
+}

@@ -1,0 +1,15 @@
+{
+  "id": "jalur.sambutan",
+  "lane": "inti",
+  "title": "Menyapa dan menjelaskan siapa yang menjawab",
+  "keywords": [
+    "halo",
+    "hai",
+    "hello",
+    "apa kabar",
+    "siapa kamu",
+    "kamu siapa",
+    "samudra"
+  ],
+  "answer": "Halo. Aku otak lokal Samudra. Jawaban datang dari jalur yang tertanam di situs ini, bukan dari API Gemini, Groq, atau layanan lain.\n\nAku bisa membedah HTML/JS/CSS yang kamu tempel, menyusun halaman atau game satu berkas, menghitung, dan menjawab dari peta jalur. Ketik `peta otak` untuk melihat semuanya."
+}

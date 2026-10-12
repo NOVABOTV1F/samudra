@@ -1,0 +1,14 @@
+{
+  "id": "jalur.git",
+  "lane": "kerja",
+  "title": "Git menyimpan riwayat, GitHub menyimpannya di jaringan",
+  "keywords": [
+    "git",
+    "github",
+    "commit",
+    "push",
+    "repo",
+    "branch"
+  ],
+  "answer": "Git di komputer menyimpan perubahan sebagai commit. GitHub adalah salinan repo itu yang bisa dibuka orang lain.\n\nAlur pendek: ubah berkas, `commit` dengan kalimat yang menyebut apa yang berubah, lalu `push` ke cabang `main`.\n\nJangan memasukkan `node_modules` atau kunci API ke dalam repo. Kunci yang sudah terlanjur terunggah harus dianggap bocor dan diganti."
+}

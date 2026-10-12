@@ -1,0 +1,14 @@
+{
+  "id": "jalur.halaman",
+  "lane": "web",
+  "title": "Meminta halaman yang bisa dijalankan",
+  "keywords": [
+    "halaman",
+    "situs",
+    "landing",
+    "satu file",
+    "widget",
+    "kartu"
+  ],
+  "answer": "Minta dengan kata buat atau buatkan, plus halaman, situs, atau widget.\n\nOtak menyusun satu dokumen HTML: gaya di dalam, tanpa pustaka luar. Panel artefak bisa menjalankannya, menyalin, atau mengunduh.\n\nSebut judulnya. Contoh: `buatkan halaman menu kopi pantai`."
+}

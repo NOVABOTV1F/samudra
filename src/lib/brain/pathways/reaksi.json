@@ -1,0 +1,13 @@
+{
+  "id": "jalur.react",
+  "lane": "web",
+  "title": "Komponen dalam React, secara gagasan",
+  "keywords": [
+    "react",
+    "komponen react",
+    "props",
+    "state",
+    "jsx"
+  ],
+  "answer": "Dalam React, komponen adalah fungsi yang mengembalikan tampilan. `props` adalah masukan dari luar. `state` adalah ingatan yang, kalau berubah, tampilan digambar ulang.\n\nJSX mirip HTML tetapi itu JavaScript. `class` ditulis `className`.\n\nSamudra sendiri memakai React. Otak yang sedang kamu pakai tidak memanggil server model. Ia memilih jalur, atau menjalankan bedah sumber, pembuat halaman, dan hitungan di peramban."
+}

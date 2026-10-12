@@ -1,0 +1,15 @@
+{
+  "id": "jalur.debug",
+  "lane": "web",
+  "title": "Kalau halaman diam atau berantakan",
+  "keywords": [
+    "error",
+    "bug",
+    "tidak jalan",
+    "rusak",
+    "debug",
+    "konsol",
+    "undefined"
+  ],
+  "answer": "Urutan yang hemat waktu:\n\n1. Buka konsol peramban. Baca baris pertama yang merah, bukan yang paling bawah.\n2. Kalau tertulis `is not defined`, nama itu belum dibuat atau salah eja.\n3. Kalau tombol diam, cek pemilihnya. `querySelector` yang tidak ketemu mengembalikan `null`, lalu `.onclick` meledak.\n4. Kalau letak berantakan, cek elemen yang lupa ditutup.\n\nTempel pesan errornya. Kutip persis, jangan diceritakan ulang."
+}

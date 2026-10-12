@@ -1,0 +1,14 @@
+{
+  "id": "jalur.file",
+  "lane": "studio",
+  "title": "Jawaban panjang menjadi berkas",
+  "keywords": [
+    "unduh",
+    "download",
+    "file",
+    "salin",
+    "copy",
+    "8000"
+  ],
+  "answer": "Di studio ini, jawaban otak yang lebih panjang dari 8000 karakter diunduh otomatis sebagai berkas markdown. Isi yang sama tetap tersimpan di percakapan.\n\nKode berpagar `html` bisa dijalankan di panel sebelah, disalin, atau diunduh.\n\nGambar lokal berformat SVG, jadi unduhannya gambar vektor, bukan foto."
+}

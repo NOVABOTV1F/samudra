@@ -1,0 +1,13 @@
+{
+  "id": "jalur.rupiah",
+  "lane": "alat",
+  "title": "Angka menjadi rupiah",
+  "keywords": [
+    "rupiah",
+    "formatrupiah",
+    "mata uang",
+    "idr",
+    "harga"
+  ],
+  "answer": "Pakai pemformat bawaan, jangan susun titik sendiri.\n\n```js\nfunction formatRupiah(angka) {\n  return new Intl.NumberFormat(\"id-ID\", {\n    style: \"currency\",\n    currency: \"IDR\",\n    maximumFractionDigits: 0,\n  }).format(angka);\n}\nconsole.log(formatRupiah(1500000));\nconsole.log(formatRupiah(0));\nconsole.log(formatRupiah(99));\nconsole.log(formatRupiah(25000));\n```\n\n`1500000` tampil sebagai Rp1.500.000."
+}

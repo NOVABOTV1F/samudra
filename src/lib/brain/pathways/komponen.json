@@ -1,0 +1,13 @@
+{
+  "id": "jalur.komponen",
+  "lane": "web",
+  "title": "Cara membaca komponen sebuah halaman",
+  "keywords": [
+    "komponen",
+    "elemen",
+    "tag",
+    "struktur html",
+    "dom"
+  ],
+  "answer": "Komponen di halaman polos adalah tag yang punya tugas.\n\n- `header` kepala, `nav` menu, `main` isi, `footer` kaki.\n- `section` satu bab, `article` satu kesatuan, `div` hanya kotak atur letak.\n- `button` bertindak, `a` pindah halaman, `form` mengumpulkan isian.\n- `script` perilaku, `style` atau `class` tampilan.\n\nTempel sumbernya dan minta bedah. Otak akan menghitung tag, id, kelas, tombol, tautan, dan nama fungsi tanpa menjalankan skrip itu."
+}
