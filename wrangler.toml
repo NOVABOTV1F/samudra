@@ -1,0 +1,12 @@
+# Cloudflare Workers — ZUZUXF_AI
+# Secrets (jangan isi key di file ini):
+#   npx wrangler secret put GEMINI_API_KEY
+#   npx wrangler secret put GROQ_API_KEY
+# Atau di Dashboard: Settings → Runtime variables and secrets
+
+name = "samudaai"
+compatibility_date = "2026-10-06"
+
+# Bindings diisi lewat Dashboard / wrangler secret
+# [vars]
+#   PUBLIC_APP_NAME = "ZUZUXF_AI"
