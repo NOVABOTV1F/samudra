@@ -1,14 +1,28 @@
+import type { AiProvider, ImageVersion } from "./types";
+
 export type ChatTurn = { role: "user" | "assistant"; content: string };
 
 export async function streamChat(options: {
   messages: ChatTurn[];
   signal: AbortSignal;
   onDelta: (chunk: string) => void;
+  provider?: AiProvider;
+  geminiKey?: string;
+  groqKey?: string;
+  systemPrompt?: string;
+  model?: string;
 }) {
   const response = await fetch("/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ messages: options.messages }),
+    body: JSON.stringify({
+      messages: options.messages,
+      provider: options.provider ?? "xai",
+      geminiKey: options.geminiKey || undefined,
+      groqKey: options.groqKey || undefined,
+      systemPrompt: options.systemPrompt,
+      model: options.model,
+    }),
     signal: options.signal,
   });
 
@@ -56,11 +70,15 @@ export async function streamChat(options: {
   }
 }
 
-export async function generateImage(prompt: string, signal: AbortSignal) {
+export async function generateImage(
+  prompt: string,
+  signal: AbortSignal,
+  version: ImageVersion = "1",
+) {
   const response = await fetch("/api/image", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt }),
+    body: JSON.stringify({ prompt, version }),
     signal,
   });
   const payload = (await response.json()) as {
