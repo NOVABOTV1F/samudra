@@ -2,19 +2,20 @@
 @import "tw-animate-css";
 
 @theme {
-  --color-abyss: #061018;
-  --color-depth: #0a1a24;
-  --color-tide: #122a36;
-  --color-lagoon: #17323f;
-  --color-ink: #e6f2f4;
-  --color-foam: #d7ecea;
-  --color-mist: #8aa8b3;
-  --color-accent: #6fb8b0;
-  --color-accent-dim: #3e7f7a;
-  --color-danger: #e07a72;
-  --color-ok: #7dbe9a;
-  --color-border: color-mix(in oklab, #e6f2f4 12%, transparent);
-  --color-border-strong: color-mix(in oklab, #e6f2f4 22%, transparent);
+  /* Soft pink theme - ZUZUXF_AI */
+  --color-abyss: #1a0f14;
+  --color-depth: #26151c;
+  --color-tide: #3a1f2a;
+  --color-lagoon: #4a2a38;
+  --color-ink: #fce8ef;
+  --color-foam: #fff0f5;
+  --color-mist: #c9a0b0;
+  --color-accent: #f472b6;
+  --color-accent-dim: #db2777;
+  --color-danger: #f87171;
+  --color-ok: #86efac;
+  --color-border: color-mix(in oklab, #fce8ef 12%, transparent);
+  --color-border-strong: color-mix(in oklab, #fce8ef 22%, transparent);
 
   --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Fraunces", "Times New Roman", ui-serif, Georgia, serif;
@@ -26,8 +27,8 @@
   --radius-xl: 24px;
   --radius-2xl: 28px;
 
-  --shadow-border: 0 0 0 1px color-mix(in oklab, #e6f2f4 10%, transparent);
-  --shadow-border-hover: 0 0 0 1px color-mix(in oklab, #e6f2f4 16%, transparent);
+  --shadow-border: 0 0 0 1px color-mix(in oklab, #fce8ef 10%, transparent);
+  --shadow-border-hover: 0 0 0 1px color-mix(in oklab, #fce8ef 16%, transparent);
 }
 
 @layer base {
@@ -71,12 +72,12 @@
   background:
     radial-gradient(
       90rem 36rem at 50% -12%,
-      color-mix(in oklab, var(--color-accent) 16%, transparent),
+      color-mix(in oklab, var(--color-accent) 18%, transparent),
       transparent 58%
     ),
     radial-gradient(
       42rem 28rem at 88% 118%,
-      color-mix(in oklab, var(--color-accent) 11%, transparent),
+      color-mix(in oklab, var(--color-accent) 12%, transparent),
       transparent 62%
     ),
     var(--color-abyss);
@@ -86,12 +87,12 @@
   background:
     radial-gradient(
       28rem 18rem at 28% 18%,
-      color-mix(in oklab, var(--color-foam) 7%, transparent),
+      color-mix(in oklab, var(--color-foam) 8%, transparent),
       transparent 70%
     ),
     radial-gradient(
       22rem 16rem at 72% 42%,
-      color-mix(in oklab, var(--color-accent) 8%, transparent),
+      color-mix(in oklab, var(--color-accent) 10%, transparent),
       transparent 72%
     );
   animation: caustic-drift 22s var(--ease-ocean, ease-in-out) infinite alternate;

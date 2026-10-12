@@ -40,9 +40,10 @@ export async function copyText(text: string) {
 export function conversationToMarkdown(conversation: Conversation) {
   const body = conversation.messages
     .map((message) => {
-      const who = message.role === "user" ? "Kamu" : "Samudra";
+      const who = message.role === "user" ? "Kamu" : "ZUZUXF_AI";
       const image = message.imageUrl ? `![gambar](${message.imageUrl})\n\n` : "";
-      return `## ${who}\n\n${image}${message.content}`.trim();
+      const file = message.fileName ? `*(file: ${message.fileName})*\n\n` : "";
+      return `## ${who}\n\n${image}${file}${message.content}`.trim();
     })
     .join("\n\n---\n\n");
   return `# ${conversation.title}\n\n${body}\n`;
