@@ -3,7 +3,7 @@ import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import appCss from "../styles.css?url";
 
-const APP_NAME = "Samudra";
+const APP_NAME = "ZUZUXF_AI";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -13,9 +13,9 @@ export const Route = createRootRoute({
       { title: APP_NAME },
       {
         name: "description",
-        content: "Studio AI bertema lautan. Tanya apa saja, jalankan kode, salin, dan unduh hasilnya.",
+        content: "Studio AI soft pink. Tanya apa saja, buat gambar, jalankan kode, ambil isi web, kirim foto.",
       },
-      { name: "theme-color", content: "#061018" },
+      { name: "theme-color", content: "#1a0f14" },
     ],
     links: [
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
