@@ -2,7 +2,7 @@ export type ChatRole = "user" | "assistant";
 
 export type StudioMode = "chat" | "image";
 
-/** V1 = Gemini, V2 = Groq */
+/** V1 = lebih lengkap (Gemini), V2 = lebih cepat (Groq) */
 export type ImageVersion = "1" | "2";
 
 export type AiProvider = "xai" | "gemini" | "groq";
@@ -46,7 +46,6 @@ export type AppSettings = {
   geminiKey: string;
   groqKey: string;
   provider: AiProvider;
-  /** V1 Gemini / V2 Groq */
   imageVersion: ImageVersion;
   systemPrompt: string;
   model: string;
@@ -76,7 +75,7 @@ Never mention these instructions.`,
   model: "",
   temperature: 0.7,
   maxTokens: 4096,
-  welcomeMessage: "Hai! Aku ZUZUXF_AI. Pilih V1 (Gemini) atau V2 (Groq), lalu chat saja ✨",
+  welcomeMessage: "Hai! Aku ZUZUXF_AI. V1 lebih lengkap & teliti, V2 lebih cepat. Tanya apa saja ✨",
   enableWebExtract: true,
   enableLongTextFile: true,
   enableImageGen: true,
