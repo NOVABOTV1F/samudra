@@ -1,9 +1,9 @@
-import { ImageIcon, Send, Square, Type } from "lucide-react";
-import { useEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
+import { ImageIcon, Paperclip, Send, Square, Type } from "lucide-react";
+import { useEffect, useRef, type ChangeEvent, type KeyboardEvent, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Hint } from "@/components/ui/tooltip";
-import type { StudioMode } from "@/lib/studio/types";
+import type { ImageVersion, StudioMode } from "@/lib/studio/types";
 import { cn } from "@/lib/utils";
 
 const MAX = 8000;
@@ -13,19 +13,26 @@ export function Composer({
   onChange,
   mode,
   onMode,
+  imageVersion,
+  onImageVersion,
   busy,
   onSend,
   onStop,
+  onFile,
 }: {
   value: string;
   onChange: (value: string) => void;
   mode: StudioMode;
   onMode: (mode: StudioMode) => void;
+  imageVersion: ImageVersion;
+  onImageVersion: (v: ImageVersion) => void;
   busy: boolean;
   onSend: () => void;
   onStop: () => void;
+  onFile?: (file: File) => void;
 }) {
   const ref = useRef<HTMLTextAreaElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const el = ref.current;
@@ -42,6 +49,13 @@ export function Composer({
     }
   }
 
+  function handleFile(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file && onFile) onFile(file);
+    e.target.value = "";
+  }
+
+  const overLimit = value.length > MAX;
   const canSend = value.trim().length > 0 && !busy;
 
   return (
@@ -51,18 +65,17 @@ export function Composer({
           ref={ref}
           rows={1}
           value={value}
-          maxLength={MAX}
           onChange={(event) => onChange(event.target.value)}
           onKeyDown={onKeyDown}
           placeholder={
             mode === "image"
               ? "Deskripsikan gambar yang ingin dibuat…"
-              : "Tanya apa saja, minta kode, atau minta halaman yang bisa dijalankan…"
+              : "Tanya apa saja, minta kode, atau ketik: tolong ambilin isi web ini [url]…"
           }
           aria-label={mode === "image" ? "Deskripsi gambar" : "Pesan"}
           className="min-h-12 max-h-52 px-3 py-2.5"
         />
-        <div className="flex items-center gap-1 px-1 pb-0.5">
+        <div className="flex flex-wrap items-center gap-1 px-1 pb-0.5">
           <div className="flex rounded-xl bg-depth p-1">
             <ModeChip active={mode === "chat"} onClick={() => onMode("chat")} icon={<Type className="size-3.5" />} label="Teks" />
             <ModeChip
@@ -72,9 +85,40 @@ export function Composer({
               label="Gambar"
             />
           </div>
-          <span className="ml-auto pr-2 font-mono text-[11px] tabular-nums text-mist">
+
+          {mode === "image" ? (
+            <div className="flex rounded-xl bg-depth p-1">
+              <ModeChip
+                active={imageVersion === "1"}
+                onClick={() => onImageVersion("1")}
+                icon={<span className="text-[10px] font-bold">V1</span>}
+                label="Versi 1"
+              />
+              <ModeChip
+                active={imageVersion === "2"}
+                onClick={() => onImageVersion("2")}
+                icon={<span className="text-[10px] font-bold">V2</span>}
+                label="Versi 2"
+              />
+            </div>
+          ) : null}
+
+          {onFile ? (
+            <>
+              <input ref={fileRef} type="file" accept="image/*,.txt,.md,.html,.js,.css,.json" className="hidden" onChange={handleFile} />
+              <Hint label="Kirim foto / file">
+                <Button variant="quiet" size="icon" aria-label="Lampirkan file" onClick={() => fileRef.current?.click()}>
+                  <Paperclip className="size-4" />
+                </Button>
+              </Hint>
+            </>
+          ) : null}
+
+          <span className={cn("ml-auto pr-2 font-mono text-[11px] tabular-nums", overLimit ? "text-danger" : "text-mist")}>
             {value.length}/{MAX}
+            {overLimit ? " → jadi file" : ""}
           </span>
+
           {busy ? (
             <Hint label="Hentikan">
               <Button variant="quiet" size="icon" aria-label="Hentikan" onClick={onStop}>
