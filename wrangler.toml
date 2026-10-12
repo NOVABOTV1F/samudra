@@ -1,12 +1,17 @@
-# Cloudflare Workers — ZUZUXF_AI
-# Secrets (jangan isi key di file ini):
-#   npx wrangler secret put GEMINI_API_KEY
-#   npx wrangler secret put GROQ_API_KEY
-# Atau di Dashboard: Settings → Runtime variables and secrets
+# ZUZUXF_AI — Cloudflare Workers (Nitro cloudflare_module)
+# Secrets di Dashboard: Settings → Runtime variables and secrets
+#   GEMINI_API_KEY, GROQ_API_KEY
+#
+# Build di Cloudflare wajib set:
+#   NITRO_PRESET = cloudflare_module
+# Deploy command: npx wrangler deploy
 
 name = "samudaai"
+main = ".output/server/index.mjs"
 compatibility_date = "2026-10-06"
+compatibility_flags = ["nodejs_compat"]
 
-# Bindings diisi lewat Dashboard / wrangler secret
-# [vars]
-#   PUBLIC_APP_NAME = "ZUZUXF_AI"
+# Static assets dari Nitro
+[assets]
+directory = ".output/public"
+binding = "ASSETS"
