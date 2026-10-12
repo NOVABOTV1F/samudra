@@ -11,14 +11,15 @@ const Body = z.object({
     )
     .min(1)
     .max(24),
-  provider: z.enum(["xai", "gemini", "groq"]).optional().default("xai"),
+  /** V1 gemini | V2 groq | xai */
+  provider: z.enum(["xai", "gemini", "groq"]).optional().default("gemini"),
   geminiKey: z.string().optional(),
   groqKey: z.string().optional(),
   systemPrompt: z.string().max(8000).optional(),
   model: z.string().max(80).optional(),
 });
 
-const DEFAULT_SYSTEM = `You are ZUZUXF_AI, a capable studio AI with a soft pink workspace.
+const DEFAULT_SYSTEM = `You are ZUZUXF_AI, a capable, friendly studio AI with a soft blue workspace.
 Help with anything: writing, analysis, planning, code, design, and small runnable web experiments.
 
 When the user asks for something that can run in a browser (page, widget, game, visualization, CSS, JS demo), output a complete self-contained HTML document in a fenced \`\`\`html block so they can press Run. Prefer one file, no external build step. CDN scripts are allowed if truly useful.
@@ -58,13 +59,20 @@ export const Route = createFileRoute("/api/chat")({
           return Response.json({ error: "Tulis pesan dulu." }, { status: 400 });
         }
 
-        // --- Gemini ---
+        // Prioritas key: ENV Netlify/host dulu, baru key dari client (dev)
+        // --- Gemini (V1) ---
         if (provider === "gemini") {
-          const key = geminiKey || process.env.GEMINI_API_KEY;
+          const key = (process.env.GEMINI_API_KEY || geminiKey || "").trim();
           if (!key) {
-            return Response.json({ error: "API key Gemini belum diisi. Buka Settings." }, { status: 400 });
+            return Response.json(
+              {
+                error:
+                  "GEMINI_API_KEY belum di-set di Netlify Environment Variables. Site settings → Environment variables → GEMINI_API_KEY → Redeploy.",
+              },
+              { status: 503 },
+            );
           }
-          const modelId = model || "gemini-2.0-flash";
+          const modelId = (model && model.includes("gemini") ? model : null) || process.env.GEMINI_MODEL || "gemini-2.0-flash";
           const contents = messages.map((m) => ({
             role: m.role === "assistant" ? "model" : "user",
             parts: [{ text: m.content }],
@@ -82,9 +90,17 @@ export const Route = createFileRoute("/api/chat")({
             },
           );
           if (!upstream.ok || !upstream.body) {
-            return Response.json({ error: `Gemini error (${upstream.status})` }, { status: 502 });
+            let detail = `Gemini error (${upstream.status})`;
+            try {
+              const errBody = await upstream.text();
+              if (errBody.includes("API_KEY") || errBody.includes("API key")) {
+                detail = "API key Gemini tidak valid. Cek GEMINI_API_KEY di Netlify.";
+              }
+            } catch {
+              /* keep */
+            }
+            return Response.json({ error: detail }, { status: 502 });
           }
-          // Convert Gemini SSE to OpenAI-like for client
           const reader = upstream.body.getReader();
           const decoder = new TextDecoder();
           const stream = new ReadableStream({
@@ -134,13 +150,22 @@ export const Route = createFileRoute("/api/chat")({
           });
         }
 
-        // --- Groq ---
+        // --- Groq (V2) ---
         if (provider === "groq") {
-          const key = groqKey || process.env.GROQ_API_KEY;
+          const key = (process.env.GROQ_API_KEY || groqKey || "").trim();
           if (!key) {
-            return Response.json({ error: "API key Groq belum diisi. Buka Settings." }, { status: 400 });
+            return Response.json(
+              {
+                error:
+                  "GROQ_API_KEY belum di-set di Netlify Environment Variables. Site settings → Environment variables → GROQ_API_KEY → Redeploy.",
+              },
+              { status: 503 },
+            );
           }
-          const modelId = model || "llama-3.3-70b-versatile";
+          const modelId =
+            (model && !model.includes("gemini") && !model.includes("grok") ? model : null) ||
+            process.env.GROQ_MODEL ||
+            "llama-3.3-70b-versatile";
           const upstream = await fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: "POST",
             headers: {
@@ -156,7 +181,7 @@ export const Route = createFileRoute("/api/chat")({
             signal: request.signal,
           });
           if (!upstream.ok || !upstream.body) {
-            return Response.json({ error: `Groq error (${upstream.status})` }, { status: 502 });
+            return Response.json({ error: `Groq error (${upstream.status}). Cek GROQ_API_KEY di Netlify.` }, { status: 502 });
           }
           return new Response(upstream.body, {
             status: 200,
@@ -168,11 +193,14 @@ export const Route = createFileRoute("/api/chat")({
           });
         }
 
-        // --- Default: xAI / Grok ---
-        const apiKey = process.env.XAI_API_KEY;
+        // --- xAI fallback ---
+        const apiKey = (process.env.XAI_API_KEY || "").trim();
         if (!apiKey) {
           return Response.json(
-            { error: "AI belum tersedia di lingkungan ini. Isi key Gemini/Groq di Settings." },
+            {
+              error:
+                "Tidak ada API key. Set GEMINI_API_KEY atau GROQ_API_KEY di Netlify Environment Variables, lalu redeploy. Pilih V1 (Gemini) atau V2 (Groq) di chat.",
+            },
             { status: 503 },
           );
         }
@@ -195,20 +223,7 @@ export const Route = createFileRoute("/api/chat")({
         });
 
         if (!upstream.ok || !upstream.body) {
-          let message = `Model sedang sibuk (${upstream.status}). Coba lagi sebentar.`;
-          try {
-            const payload = (await upstream.json()) as { code?: string; error?: string };
-            const blob = `${payload.code ?? ""} ${payload.error ?? ""}`.toLowerCase();
-            if (blob.includes("spending") || blob.includes("credit")) {
-              message = "Kuota AI sedang habis. Coba lagi nanti.";
-            }
-          } catch {
-            /* keep default */
-          }
-          return Response.json(
-            { error: message },
-            { status: upstream.status === 429 ? 429 : 502 },
-          );
+          return Response.json({ error: `Model sibuk (${upstream.status}).` }, { status: upstream.status === 429 ? 429 : 502 });
         }
 
         return new Response(upstream.body, {
