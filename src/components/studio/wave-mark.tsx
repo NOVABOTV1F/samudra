@@ -9,18 +9,17 @@ export function WaveMark({ className }: { className?: string }) {
       aria-hidden="true"
     >
       <path
-        d="M8 22c2-4 4-8 8-8s6 4 8 8"
+        d="M4 19c3.2 0 3.2-6 6.4-6s3.2 6 6.4 6 3.2-6 6.4-6 3.2 6 6.4 6"
         stroke="currentColor"
-        strokeWidth="1.8"
+        strokeWidth="1.7"
         strokeLinecap="round"
       />
-      <circle cx="16" cy="12" r="3.2" stroke="currentColor" strokeWidth="1.6" />
       <path
-        d="M10 26h12"
+        d="M4 24c3.2 0 3.2-4 6.4-4s3.2 4 6.4 4 3.2-4 6.4-4 3.2 4 6.4 4"
         stroke="currentColor"
-        strokeWidth="1.4"
+        strokeWidth="1.3"
         strokeLinecap="round"
-        opacity="0.5"
+        opacity="0.45"
       />
     </svg>
   );

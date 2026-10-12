@@ -3,7 +3,6 @@ import { z } from "zod";
 
 const Body = z.object({
   prompt: z.string().trim().min(1).max(2000),
-  version: z.enum(["1", "2"]).optional().default("1"),
 });
 
 export const Route = createFileRoute("/api/image")({
@@ -30,12 +29,6 @@ export const Route = createFileRoute("/api/image")({
           return Response.json({ ok: false, error: "Deskripsi gambar terlalu panjang atau kosong." }, { status: 400 });
         }
 
-        // Version 1 = standard, Version 2 = higher detail prompt tweak
-        const prompt =
-          parsed.data.version === "2"
-            ? `${parsed.data.prompt}. Highly detailed, sharp, premium quality, soft lighting.`
-            : parsed.data.prompt;
-
         const upstream = await fetch("https://api.x.ai/v1/images/generations", {
           method: "POST",
           headers: {
@@ -44,9 +37,9 @@ export const Route = createFileRoute("/api/image")({
           },
           body: JSON.stringify({
             model: "grok-imagine-image",
-            prompt,
+            prompt: parsed.data.prompt,
             n: 1,
-            resolution: parsed.data.version === "2" ? "2k" : "1k",
+            resolution: "1k",
             response_format: "b64_json",
           }),
           signal: request.signal,

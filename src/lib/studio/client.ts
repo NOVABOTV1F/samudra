@@ -1,25 +1,14 @@
-import type { AiProvider, ImageVersion } from "./types";
-
 export type ChatTurn = { role: "user" | "assistant"; content: string };
 
 export async function streamChat(options: {
   messages: ChatTurn[];
   signal: AbortSignal;
   onDelta: (chunk: string) => void;
-  provider?: AiProvider;
-  systemPrompt?: string;
-  model?: string;
 }) {
   const response = await fetch("/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      messages: options.messages,
-      // Key diambil dari ENV Netlify di server — user tidak perlu isi key
-      provider: options.provider ?? "gemini",
-      systemPrompt: options.systemPrompt,
-      model: options.model || undefined,
-    }),
+    body: JSON.stringify({ messages: options.messages }),
     signal: options.signal,
   });
 
@@ -61,21 +50,17 @@ export async function streamChat(options: {
           options.onDelta(token);
         }
       } catch {
-        /* ignore */
+        /* ignore malformed keepalives */
       }
     }
   }
 }
 
-export async function generateImage(
-  prompt: string,
-  signal: AbortSignal,
-  _version: ImageVersion = "1",
-) {
+export async function generateImage(prompt: string, signal: AbortSignal) {
   const response = await fetch("/api/image", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt, version: _version }),
+    body: JSON.stringify({ prompt }),
     signal,
   });
   const payload = (await response.json()) as {

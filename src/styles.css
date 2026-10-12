@@ -2,21 +2,19 @@
 @import "tw-animate-css";
 
 @theme {
-  /* Soft light-blue theme — ZUZUXF_AI */
-  --color-abyss: #0b1220;
-  --color-depth: #111c2e;
-  --color-tide: #1a2d4a;
-  --color-lagoon: #243b5c;
-  --color-ink: #e8f1ff;
-  --color-foam: #f0f7ff;
-  --color-mist: #8ba3c7;
-  --color-accent: #38bdf8;
-  --color-accent-dim: #0ea5e9;
-  --color-danger: #f87171;
-  --color-ok: #4ade80;
-  --color-warn: #fbbf24;
-  --color-border: color-mix(in oklab, #e8f1ff 11%, transparent);
-  --color-border-strong: color-mix(in oklab, #e8f1ff 20%, transparent);
+  --color-abyss: #061018;
+  --color-depth: #0a1a24;
+  --color-tide: #122a36;
+  --color-lagoon: #17323f;
+  --color-ink: #e6f2f4;
+  --color-foam: #d7ecea;
+  --color-mist: #8aa8b3;
+  --color-accent: #6fb8b0;
+  --color-accent-dim: #3e7f7a;
+  --color-danger: #e07a72;
+  --color-ok: #7dbe9a;
+  --color-border: color-mix(in oklab, #e6f2f4 12%, transparent);
+  --color-border-strong: color-mix(in oklab, #e6f2f4 22%, transparent);
 
   --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Fraunces", "Times New Roman", ui-serif, Georgia, serif;
@@ -28,9 +26,8 @@
   --radius-xl: 24px;
   --radius-2xl: 28px;
 
-  --shadow-border: 0 0 0 1px color-mix(in oklab, #e8f1ff 10%, transparent);
-  --shadow-border-hover: 0 0 0 1px color-mix(in oklab, #38bdf8 35%, transparent);
-  --shadow-glow: 0 0 40px color-mix(in oklab, #38bdf8 18%, transparent);
+  --shadow-border: 0 0 0 1px color-mix(in oklab, #e6f2f4 10%, transparent);
+  --shadow-border-hover: 0 0 0 1px color-mix(in oklab, #e6f2f4 16%, transparent);
 }
 
 @layer base {
@@ -54,10 +51,18 @@
     cursor: pointer;
   }
 
-  h1, h2, h3 { text-wrap: balance; }
-  p { text-wrap: pretty; }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
 
-  textarea, input, select {
+  p {
+    text-wrap: pretty;
+  }
+
+  textarea,
+  input {
     font-size: 16px;
   }
 }
@@ -65,18 +70,13 @@
 .ocean-scene {
   background:
     radial-gradient(
-      90rem 40rem at 50% -15%,
-      color-mix(in oklab, var(--color-accent) 22%, transparent),
-      transparent 55%
+      90rem 36rem at 50% -12%,
+      color-mix(in oklab, var(--color-accent) 16%, transparent),
+      transparent 58%
     ),
     radial-gradient(
-      50rem 30rem at 15% 90%,
-      color-mix(in oklab, #6366f1 12%, transparent),
-      transparent 60%
-    ),
-    radial-gradient(
-      40rem 28rem at 90% 80%,
-      color-mix(in oklab, var(--color-accent) 14%, transparent),
+      42rem 28rem at 88% 118%,
+      color-mix(in oklab, var(--color-accent) 11%, transparent),
       transparent 62%
     ),
     var(--color-abyss);
@@ -85,75 +85,101 @@
 .ocean-caustic {
   background:
     radial-gradient(
-      28rem 18rem at 30% 20%,
-      color-mix(in oklab, var(--color-foam) 9%, transparent),
+      28rem 18rem at 28% 18%,
+      color-mix(in oklab, var(--color-foam) 7%, transparent),
       transparent 70%
     ),
     radial-gradient(
-      24rem 16rem at 70% 45%,
-      color-mix(in oklab, var(--color-accent) 12%, transparent),
+      22rem 16rem at 72% 42%,
+      color-mix(in oklab, var(--color-accent) 8%, transparent),
       transparent 72%
     );
-  animation: caustic-drift 20s ease-in-out infinite alternate;
+  animation: caustic-drift 22s var(--ease-ocean, ease-in-out) infinite alternate;
 }
 
 @keyframes caustic-drift {
-  from { transform: translate3d(-1.5%, 0, 0); }
-  to { transform: translate3d(2.5%, 1.5%, 0); }
+  from {
+    transform: translate3d(-1.4%, 0, 0);
+  }
+  to {
+    transform: translate3d(2.2%, 1.4%, 0);
+  }
 }
 
 .tide-shimmer {
   background: linear-gradient(
     90deg,
     var(--color-mist) 0%,
-    var(--color-accent) 40%,
-    var(--color-foam) 60%,
+    var(--color-foam) 42%,
     var(--color-mist) 100%
   );
-  background-size: 200% 100%;
+  background-size: 180% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  animation: tide-sweep 2s linear infinite;
+  animation: tide-sweep 1.6s linear infinite;
 }
 
 @keyframes tide-sweep {
-  from { background-position: 100% 0; }
-  to { background-position: -100% 0; }
-}
-
-.glow-card {
-  box-shadow: var(--shadow-border), var(--shadow-glow);
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -80% 0;
+  }
 }
 
 .md-body {
   font-size: 0.9375rem;
-  line-height: 1.65;
+  line-height: 1.62;
   color: var(--color-ink);
 }
-.md-body > * + * { margin-top: 0.8em; }
-.md-body h1, .md-body h2, .md-body h3 {
+
+.md-body > * + * {
+  margin-top: 0.8em;
+}
+
+.md-body h1,
+.md-body h2,
+.md-body h3 {
   font-family: var(--font-display);
   font-weight: 550;
   letter-spacing: -0.02em;
   line-height: 1.25;
   color: var(--color-foam);
 }
-.md-body h1 { font-size: 1.35rem; }
-.md-body h2 { font-size: 1.15rem; }
-.md-body h3 { font-size: 1.05rem; }
+
+.md-body h1 {
+  font-size: 1.35rem;
+}
+.md-body h2 {
+  font-size: 1.15rem;
+}
+.md-body h3 {
+  font-size: 1.05rem;
+}
+
 .md-body a {
   color: var(--color-accent);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
-.md-body ul, .md-body ol { padding-left: 1.2em; }
-.md-body li + li { margin-top: 0.28em; }
+
+.md-body ul,
+.md-body ol {
+  padding-left: 1.2em;
+}
+
+.md-body li + li {
+  margin-top: 0.28em;
+}
+
 .md-body blockquote {
   border-left: 2px solid var(--color-accent-dim);
   padding-left: 0.9em;
   color: var(--color-mist);
 }
+
 .md-body code {
   font-family: var(--font-mono);
   font-size: 0.84em;
@@ -161,17 +187,25 @@
   padding: 0.12em 0.35em;
   border-radius: 6px;
 }
-.md-body pre code { background: none; padding: 0; }
+
+.md-body pre code {
+  background: none;
+  padding: 0;
+}
+
 .md-body table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.875rem;
 }
-.md-body th, .md-body td {
+
+.md-body th,
+.md-body td {
   border-bottom: 1px solid var(--color-border);
   padding: 0.4em 0.55em;
   text-align: left;
 }
+
 .md-body img {
   max-width: 100%;
   border-radius: 12px;
@@ -180,7 +214,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ocean-caustic, .tide-shimmer { animation: none; }
+  .ocean-caustic,
+  .tide-shimmer {
+    animation: none;
+  }
+
   .tide-shimmer {
     color: var(--color-mist);
     background: none;

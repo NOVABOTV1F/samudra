@@ -1,11 +1,9 @@
 import { create } from "zustand";
 import { uid } from "@/lib/utils";
 import { titleFromPrompt } from "./parse";
-import type { ActiveArtifact, AppSettings, ChatMessage, Conversation } from "./types";
-import { DEFAULT_SETTINGS } from "./types";
+import type { ActiveArtifact, ChatMessage, Conversation } from "./types";
 
-const STORAGE_KEY = "zuzuxf-ai-studio-v2";
-const SETTINGS_KEY = "zuzuxf-ai-settings-v2";
+const STORAGE_KEY = "samudra-studio-v1";
 const MAX_CHATS = 40;
 const MAX_MESSAGES = 80;
 
@@ -15,22 +13,16 @@ type StudioState = {
   activeId: string | null;
   streamingId: string | null;
   artifact: ActiveArtifact | null;
-  settings: AppSettings;
-  isAdmin: boolean;
   hydrate: () => void;
   newChat: () => string;
   setActive: (id: string) => void;
   deleteChat: (id: string) => void;
-  clearAllChats: () => void;
   addMessage: (conversationId: string, message: Omit<ChatMessage, "id" | "createdAt"> & { id?: string }) => string;
   patchMessage: (conversationId: string, messageId: string, patch: Partial<ChatMessage>) => void;
   setStreaming: (id: string | null) => void;
   openArtifact: (artifact: ActiveArtifact) => void;
   closeArtifact: () => void;
   updateArtifactCode: (code: string) => void;
-  updateSettings: (patch: Partial<AppSettings>) => void;
-  resetSettings: () => void;
-  setAdmin: (value: boolean) => void;
 };
 
 function snapshot(state: Pick<StudioState, "conversations" | "activeId">) {
@@ -62,25 +54,6 @@ function snapshot(state: Pick<StudioState, "conversations" | "activeId">) {
   }
 }
 
-function saveSettings(settings: AppSettings) {
-  try {
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-  } catch {
-    /* ignore */
-  }
-}
-
-function loadSettings(): AppSettings {
-  try {
-    const raw = localStorage.getItem(SETTINGS_KEY);
-    if (!raw) return { ...DEFAULT_SETTINGS };
-    const parsed = JSON.parse(raw) as Partial<AppSettings>;
-    return { ...DEFAULT_SETTINGS, ...parsed };
-  } catch {
-    return { ...DEFAULT_SETTINGS };
-  }
-}
-
 function load(): Pick<StudioState, "conversations" | "activeId"> {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -105,11 +78,9 @@ export const useStudioStore = create<StudioState>((set, get) => ({
   activeId: null,
   streamingId: null,
   artifact: null,
-  settings: { ...DEFAULT_SETTINGS },
-  isAdmin: false,
   hydrate: () => {
     if (get().hydrated) return;
-    set({ ...load(), settings: loadSettings(), hydrated: true });
+    set({ ...load(), hydrated: true });
   },
   newChat: () => {
     const conversation: Conversation = {
@@ -146,13 +117,6 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       };
     });
   },
-  clearAllChats: () => {
-    set(() => {
-      const next = { conversations: [], activeId: null };
-      snapshot(next);
-      return { ...next, artifact: null };
-    });
-  },
   addMessage: (conversationId, message) => {
     const id = message.id ?? uid();
     set((state) => {
@@ -175,7 +139,6 @@ export const useStudioStore = create<StudioState>((set, get) => ({
               content: message.content,
               imageUrl: message.imageUrl,
               error: message.error,
-              fileName: message.fileName,
             },
           ].slice(-MAX_MESSAGES),
         };
@@ -210,19 +173,6 @@ export const useStudioStore = create<StudioState>((set, get) => ({
     set((state) =>
       state.artifact ? { artifact: { ...state.artifact, code } } : state,
     ),
-  updateSettings: (patch) => {
-    set((state) => {
-      const settings = { ...state.settings, ...patch };
-      saveSettings(settings);
-      return { settings };
-    });
-  },
-  resetSettings: () => {
-    const settings = { ...DEFAULT_SETTINGS };
-    saveSettings(settings);
-    set({ settings });
-  },
-  setAdmin: (value) => set({ isAdmin: value }),
 }));
 
 export function selectActiveChat(state: StudioState) {

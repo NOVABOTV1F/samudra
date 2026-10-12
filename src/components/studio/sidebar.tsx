@@ -1,4 +1,4 @@
-import { Download, Plus, Settings, Trash2, Sparkles } from "lucide-react";
+import { Download, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Hint } from "@/components/ui/tooltip";
@@ -13,7 +13,6 @@ export function Sidebar({
   onNew,
   onSelect,
   onDelete,
-  onSettings,
   className,
 }: {
   conversations: Conversation[];
@@ -21,39 +20,28 @@ export function Sidebar({
   onNew: () => void;
   onSelect: (id: string) => void;
   onDelete: (id: string) => void;
-  onSettings?: () => void;
   className?: string;
 }) {
   return (
-    <div className={cn("flex h-full flex-col bg-depth/90", className)}>
-      <div className="flex items-center gap-2.5 px-4 pt-5 pb-4">
-        <div className="flex size-10 items-center justify-center rounded-xl bg-accent/15 ring-1 ring-accent/30">
-          <WaveMark className="size-6" />
-        </div>
+    <div className={cn("flex h-full flex-col bg-depth/80", className)}>
+      <div className="flex items-center gap-2 px-4 pt-5 pb-4">
+        <WaveMark className="size-8" />
         <div className="min-w-0">
-          <p className="font-display text-lg leading-tight tracking-tight text-foam">ZUZUXF_AI</p>
-          <p className="flex items-center gap-1 text-[11px] text-mist">
-            <Sparkles className="size-3 text-accent" /> Soft Blue Studio
-          </p>
+          <p className="font-display text-lg leading-tight tracking-tight text-foam">Samudra</p>
+          <p className="text-[11px] text-mist">Studio AI</p>
         </div>
       </div>
 
-      <div className="space-y-2 px-3">
+      <div className="px-3">
         <Button variant="primary" className="w-full" onClick={onNew}>
           <Plus />
           Percakapan baru
         </Button>
-        {onSettings ? (
-          <Button variant="quiet" className="w-full" onClick={onSettings}>
-            <Settings className="size-4" />
-            Settings & API Keys
-          </Button>
-        ) : null}
       </div>
 
       <nav className="mt-4 min-h-0 flex-1 overflow-y-auto px-2 pb-3" aria-label="Riwayat percakapan">
         {conversations.length === 0 ? (
-          <p className="px-3 py-6 text-center text-sm text-mist">Belum ada riwayat.<br />Mulai chat pertama ✨</p>
+          <p className="px-3 py-6 text-sm text-mist">Belum ada riwayat. Mulai dari ombak pertama.</p>
         ) : (
           <ul className="space-y-1">
             {conversations.map((chat) => {
@@ -62,8 +50,8 @@ export function Sidebar({
                 <li key={chat.id}>
                   <div
                     className={cn(
-                      "group flex items-center gap-1 rounded-xl px-1 transition-colors",
-                      active ? "bg-tide ring-1 ring-accent/20" : "hover:bg-tide/60",
+                      "group flex items-center gap-1 rounded-xl px-1",
+                      active ? "bg-tide" : "hover:bg-tide/60",
                     )}
                   >
                     <button
@@ -110,7 +98,7 @@ export function Sidebar({
       </nav>
 
       <p className="px-4 pb-[max(1rem,env(safe-area-inset-bottom))] text-[11px] leading-relaxed text-mist">
-        ZUZUXF_AI · Soft Blue · Riwayat di perangkat ini
+        Model Grok. Riwayat tersimpan di perangkat ini.
       </p>
     </div>
   );
@@ -121,5 +109,5 @@ function slug(value: string) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "")
-    .slice(0, 40) || "zuzuxf-ai";
+    .slice(0, 40) || "samudra";
 }
