@@ -13,9 +13,9 @@ export const Route = createRootRoute({
       { title: APP_NAME },
       {
         name: "description",
-        content: "Studio AI soft pink. Tanya apa saja, buat gambar, jalankan kode, ambil isi web, kirim foto.",
+        content: "ZUZUXF_AI — Studio AI soft blue. Chat, gambar, kode, web extract, foto.",
       },
-      { name: "theme-color", content: "#1a0f14" },
+      { name: "theme-color", content: "#0b1220" },
     ],
     links: [
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },

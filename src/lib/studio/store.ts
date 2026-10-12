@@ -4,8 +4,8 @@ import { titleFromPrompt } from "./parse";
 import type { ActiveArtifact, AppSettings, ChatMessage, Conversation } from "./types";
 import { DEFAULT_SETTINGS } from "./types";
 
-const STORAGE_KEY = "zuzuxf-ai-studio-v1";
-const SETTINGS_KEY = "zuzuxf-ai-settings-v1";
+const STORAGE_KEY = "zuzuxf-ai-studio-v2";
+const SETTINGS_KEY = "zuzuxf-ai-settings-v2";
 const MAX_CHATS = 40;
 const MAX_MESSAGES = 80;
 
@@ -21,6 +21,7 @@ type StudioState = {
   newChat: () => string;
   setActive: (id: string) => void;
   deleteChat: (id: string) => void;
+  clearAllChats: () => void;
   addMessage: (conversationId: string, message: Omit<ChatMessage, "id" | "createdAt"> & { id?: string }) => string;
   patchMessage: (conversationId: string, messageId: string, patch: Partial<ChatMessage>) => void;
   setStreaming: (id: string | null) => void;
@@ -28,6 +29,7 @@ type StudioState = {
   closeArtifact: () => void;
   updateArtifactCode: (code: string) => void;
   updateSettings: (patch: Partial<AppSettings>) => void;
+  resetSettings: () => void;
   setAdmin: (value: boolean) => void;
 };
 
@@ -144,6 +146,13 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       };
     });
   },
+  clearAllChats: () => {
+    set(() => {
+      const next = { conversations: [], activeId: null };
+      snapshot(next);
+      return { ...next, artifact: null };
+    });
+  },
   addMessage: (conversationId, message) => {
     const id = message.id ?? uid();
     set((state) => {
@@ -207,6 +216,11 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       saveSettings(settings);
       return { settings };
     });
+  },
+  resetSettings: () => {
+    const settings = { ...DEFAULT_SETTINGS };
+    saveSettings(settings);
+    set({ settings });
   },
   setAdmin: (value) => set({ isAdmin: value }),
 }));
