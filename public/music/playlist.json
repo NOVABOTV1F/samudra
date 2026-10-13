@@ -1,26 +1,26 @@
 {
+  "note": "Tambah file audio di public/music/ lalu daftar di sini. Format: mp3/ogg.",
   "tracks": [
     {
-      "id": "m1",
-      "title": "Ombak Tenang",
-      "artist": "Samudra Ambient",
-      "url": "https://cdn.pixabay.com/download/audio/2022/03/15/audio_c9a4a1d834.mp3?filename=relaxing-145038.mp3",
-      "cover": ""
+      "id": "ambient-1",
+      "title": "Soft Blue Ambient",
+      "artist": "Samudra",
+      "url": "",
+      "hint": "Isi url misalnya /music/soft-blue.mp3 setelah upload file"
     },
     {
-      "id": "m2",
-      "title": "Biru Pagi",
-      "artist": "Samudra Ambient",
-      "url": "https://cdn.pixabay.com/download/audio/2021/11/25/audio_91b298bc80.mp3?filename=lofi-study-112191.mp3",
-      "cover": ""
+      "id": "focus-1",
+      "title": "Focus Tide",
+      "artist": "Samudra",
+      "url": "",
+      "hint": "Backup musik: taruh file di public/music/"
     },
     {
-      "id": "m3",
-      "title": "Arus Lembut",
-      "artist": "Samudra Ambient",
-      "url": "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=chill-abstract-intention-12099.mp3",
-      "cover": ""
+      "id": "calm-1",
+      "title": "Calm Lagoon",
+      "artist": "Samudra",
+      "url": "",
+      "hint": "Kosong = belum ada file audio"
     }
-  ],
-  "note": "Ganti url ke file di public/music/ atau raw GitHub. Contoh: /music/lagu1.mp3"
+  ]
 }

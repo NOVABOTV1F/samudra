@@ -1,30 +1,44 @@
-# Deploy ZUZUXF_AI ke Cloudflare Workers
+# Deploy Samudra ke Cloudflare
 
-## Settings → Builds
+## A. Cloudflare Pages (disarankan jika menu = Pages)
 
 | Field | Value |
 |-------|--------|
-| **Build command** | `npm run build:cf` |
-| **Deploy command** | `npx wrangler deploy` |
-| **Root directory** | `/` |
+| Build command | `npm run build:pages` |
+| Build output directory | `dist` atau sesuai output Nitro Pages |
+| Root | `/` |
 
-Jangan pakai `npm run build` — itu menghasilkan output Vercel, bukan Cloudflare.
-
-## Runtime variables and secrets
+Build variable:
 
 | Name | Value |
 |------|--------|
-| `GEMINI_API_KEY` | key Gemini |
-| `GROQ_API_KEY` | key Groq |
+| `NITRO_PRESET` | `cloudflare_pages` |
 
-## Setelah ubah settings
+## B. Cloudflare Workers
 
-Retry build. Di log harus muncul:
+| Field | Value |
+|-------|--------|
+| Build command | `npm run build:cf` |
+| Deploy command | `npx wrangler deploy` |
 
-```
-[build:cf] NITRO_PRESET=cloudflare_module
-[vite] Nitro preset = cloudflare_module
-[build:cf] OK — .output/server/index.mjs siap untuk wrangler deploy
-```
+Build variable (opsional, script sudah force):
 
-Kalau masih `preset: vercel` → Build command belum diganti ke `npm run build:cf`.
+| Name | Value |
+|------|--------|
+| `NITRO_PRESET` | `cloudflare_module` |
+
+## Runtime secrets (AI cloud opsional)
+
+- `GEMINI_API_KEY`
+- `GROQ_API_KEY`
+
+Chat **otak lokal** tetap jalan di browser tanpa secrets.
+
+## Yang terbatas di Cloudflare
+
+- Ambil isi situs orang lain (CORS / keamanan)
+- Database server penuh (app ini pakai storage browser + otak lokal)
+
+## Cek log build
+
+Harus muncul `Nitro preset = cloudflare_pages` atau `cloudflare_module`, **bukan** `vercel`.
