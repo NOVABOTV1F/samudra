@@ -1,26 +1,17 @@
 {
-  "note": "Tambah file audio di public/music/ lalu daftar di sini. Format: mp3/ogg.",
+  "note": "url wajib raw/direct ke file. mp3 = musik. mp4 = hanya audio diputar (tanpa video).",
   "tracks": [
     {
-      "id": "ambient-1",
-      "title": "Soft Blue Ambient",
+      "id": "example-mp3",
+      "title": "Contoh MP3 (ganti url)",
       "artist": "Samudra",
-      "url": "",
-      "hint": "Isi url misalnya /music/soft-blue.mp3 setelah upload file"
+      "url": "https://raw.githubusercontent.com/NOVABOTV1F/samudra/main/public/music/soft-blue.mp3"
     },
     {
-      "id": "focus-1",
-      "title": "Focus Tide",
+      "id": "example-mp4-audio",
+      "title": "Contoh MP4 audio-only (ganti url)",
       "artist": "Samudra",
-      "url": "",
-      "hint": "Backup musik: taruh file di public/music/"
-    },
-    {
-      "id": "calm-1",
-      "title": "Calm Lagoon",
-      "artist": "Samudra",
-      "url": "",
-      "hint": "Kosong = belum ada file audio"
+      "url": "https://raw.githubusercontent.com/NOVABOTV1F/samudra/main/public/music/clip.mp4"
     }
   ]
 }

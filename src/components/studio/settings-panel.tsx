@@ -13,6 +13,20 @@ import { cn } from "@/lib/utils";
 
 type Track = { id: string; title: string; artist: string; url: string; hint?: string };
 
+/** Hanya audio: mp3/m4a/ogg/wav + mp4 (diputar lewat Audio = tanpa video) */
+function isAudioUrl(url: string) {
+  const u = url.trim().toLowerCase();
+  if (!u) return false;
+  if (u.startsWith("data:audio/")) return true;
+  if (u.startsWith("data:video/mp4")) return true; // audio-only via <audio>
+  return /\.(mp3|m4a|aac|ogg|wav|mp4)(\?|#|$)/i.test(u) || /raw\.githubusercontent\.com/i.test(u);
+}
+
+function isProbablyVideoOnly(url: string) {
+  // webm/mov ditolak; mp4 tetap boleh (audio track saja)
+  return /\.(webm|mov|avi|mkv)(\?|#|$)/i.test(url.trim());
+}
+
 export function SettingsButton({
   open,
   onOpenChange,
@@ -38,9 +52,7 @@ export function SettingsPanel({
   onOpenChange: (v: boolean) => void;
 }) {
   const [tab, setTab] = useState<"prompt" | "keys" | "music">("prompt");
-  const [s, setS] = useState<UserSettings>(() =>
-    typeof window === "undefined" ? loadSettings() : loadSettings(),
-  );
+  const [s, setS] = useState<UserSettings>(loadSettings);
   const [code, setCode] = useState("");
   const [msg, setMsg] = useState("");
   const [tracks, setTracks] = useState<Track[]>([]);
@@ -62,10 +74,13 @@ export function SettingsPanel({
 
   const filtered = useMemo(() => {
     const n = q.trim().toLowerCase();
-    if (!n) return tracks;
-    return tracks.filter(
-      (t) => t.title.toLowerCase().includes(n) || t.artist.toLowerCase().includes(n),
-    );
+    let list = tracks.filter((t) => t.url && isAudioUrl(t.url) && !isProbablyVideoOnly(t.url));
+    if (n) {
+      list = list.filter(
+        (t) => t.title.toLowerCase().includes(n) || t.artist.toLowerCase().includes(n),
+      );
+    }
+    return list;
   }, [tracks, q]);
 
   function persist(next: UserSettings) {
@@ -80,22 +95,37 @@ export function SettingsPanel({
   }
 
   function playTrack(t: Track) {
-    if (!t.url) {
-      setMsg(`Track "${t.title}" belum punya file. Upload ke public/music/`);
+    if (!t.url || !isAudioUrl(t.url)) {
+      setMsg(`"${t.title}" butuh URL raw audio (mp3/mp4).`);
+      return;
+    }
+    if (isProbablyVideoOnly(t.url)) {
+      setMsg("Format video murni tidak didukung. Pakai mp3 atau mp4 (hanya audio yang diputar).");
       return;
     }
     if (!audioRef.current) audioRef.current = new Audio();
     const a = audioRef.current;
+    // mp4 ikut lewat <audio> → tidak ada video, hanya soundtrack
     if (current?.id === t.id && playing) {
       a.pause();
       setPlaying(false);
       return;
     }
-    a.src = t.url;
-    void a.play().then(() => {
-      setCurrent(t);
-      setPlaying(true);
-    });
+    a.src = t.url.trim();
+    void a
+      .play()
+      .then(() => {
+        setCurrent(t);
+        setPlaying(true);
+        setMsg(
+          /\.mp4(\?|#|$)/i.test(t.url)
+            ? "MP4: video diabaikan, hanya musik yang diputar."
+            : "",
+        );
+      })
+      .catch(() => {
+        setMsg("Gagal putar. Pastikan URL raw bisa diakses (CORS) dan berisi audio.");
+      });
     a.onended = () => setPlaying(false);
   }
 
@@ -168,18 +198,17 @@ export function SettingsPanel({
                     onChange={(e) => persist({ ...s, personality: e.target.value })}
                     placeholder="ramah, ringkas, formal…"
                   />
-                  <p className="text-[11px] text-mist">
-                    Dipakai saat mode cloud (Gemini/Groq). Otak lokal tetap pakai jalur di GitHub.
-                  </p>
                 </div>
               ) : null}
 
               {tab === "keys" ? (
                 <div className="space-y-3">
                   <p className="rounded-xl bg-lagoon/80 px-3 py-2 text-xs text-mist">
-                    Status akses: <strong className="text-foam">{accessLabel}</strong>
+                    Status: <strong className="text-foam">{accessLabel}</strong>
+                    <br />
+                    <strong>V1 = Gemini</strong> · <strong>V2 = Groq</strong> (tombol di chat)
                   </p>
-                  <label className="block text-xs text-mist">Kode lisensi (free / 20k / permanen)</label>
+                  <label className="block text-xs text-mist">Kode lisensi</label>
                   <div className="flex gap-2">
                     <input
                       className="min-w-0 flex-1 rounded-xl border border-border bg-depth px-3 py-2 text-sm outline-none"
@@ -191,25 +220,9 @@ export function SettingsPanel({
                       Aktifkan
                     </Button>
                   </div>
-                  {msg ? <p className="text-xs text-accent-dim">{msg}</p> : null}
+                  {msg && tab === "keys" ? <p className="text-xs text-accent-dim">{msg}</p> : null}
 
-                  <label className="block text-xs text-mist">Preferensi</label>
-                  <select
-                    className="w-full rounded-xl border border-border bg-depth px-3 py-2 text-sm"
-                    value={s.preferProvider}
-                    onChange={(e) =>
-                      persist({
-                        ...s,
-                        preferProvider: e.target.value as UserSettings["preferProvider"],
-                      })
-                    }
-                  >
-                    <option value="brain">Otak lokal (gratis, selalu)</option>
-                    <option value="groq">V2 Groq (rekomendasi cloud)</option>
-                    <option value="gemini">V1 Gemini</option>
-                  </select>
-
-                  <label className="block text-xs text-mist">GEMINI_API_KEY (opsional)</label>
+                  <label className="block text-xs text-mist">GEMINI_API_KEY (V1)</label>
                   <input
                     type="password"
                     className="w-full rounded-xl border border-border bg-depth px-3 py-2 text-sm"
@@ -217,7 +230,7 @@ export function SettingsPanel({
                     onChange={(e) => persist({ ...s, geminiKey: e.target.value })}
                     placeholder="AIza…"
                   />
-                  <label className="block text-xs text-mist">GROQ_API_KEY (opsional, V2)</label>
+                  <label className="block text-xs text-mist">GROQ_API_KEY (V2 — rekomendasi)</label>
                   <input
                     type="password"
                     className="w-full rounded-xl border border-border bg-depth px-3 py-2 text-sm"
@@ -225,15 +238,19 @@ export function SettingsPanel({
                     onChange={(e) => persist({ ...s, groqKey: e.target.value })}
                     placeholder="gsk_…"
                   />
-                  <p className="text-[11px] leading-relaxed text-mist">
-                    Free 24 jam · Berbayar ~20k = 3 minggu · Permanen = tanpa batas waktu di perangkat ini.
-                    Kode dikelola manual (bukan payment otomatis). Key cloud disimpan di browser kamu.
+                  <p className="text-[11px] text-mist">
+                    Isi key → pilih V1/V2 di chat → kirim. Tanpa key = otak lokal.
                   </p>
                 </div>
               ) : null}
 
               {tab === "music" ? (
                 <div className="space-y-3">
+                  <p className="text-[11px] leading-relaxed text-mist">
+                    URL harus <strong>raw</strong> (GitHub raw / link langsung file).
+                    <br />
+                    <strong>mp3</strong> = musik · <strong>mp4</strong> = hanya audio (video tidak ditampilkan).
+                  </p>
                   <div className="relative">
                     <Search className="pointer-events-none absolute top-2.5 left-3 size-4 text-mist" />
                     <input
@@ -244,29 +261,32 @@ export function SettingsPanel({
                     />
                   </div>
                   <ul className="max-h-56 space-y-1 overflow-y-auto">
-                    {filtered.map((t) => (
-                      <li key={t.id}>
-                        <button
-                          type="button"
-                          onClick={() => playTrack(t)}
-                          className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left hover:bg-lagoon"
-                        >
-                          <Music2 className="size-4 shrink-0 text-accent" />
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm text-foam">{t.title}</span>
-                            <span className="block truncate text-[11px] text-mist">
-                              {t.artist}
-                              {!t.url ? " · belum ada file" : ""}
-                            </span>
-                          </span>
-                        </button>
+                    {filtered.length === 0 ? (
+                      <li className="px-2 py-3 text-xs text-mist">
+                        Belum ada track valid. Isi url raw di public/music/playlist.json
                       </li>
-                    ))}
+                    ) : (
+                      filtered.map((t) => (
+                        <li key={t.id}>
+                          <button
+                            type="button"
+                            onClick={() => playTrack(t)}
+                            className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left hover:bg-lagoon"
+                          >
+                            <Music2 className="size-4 shrink-0 text-accent" />
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-sm text-foam">{t.title}</span>
+                              <span className="block truncate text-[11px] text-mist">
+                                {t.artist}
+                                {/\.mp4/i.test(t.url) ? " · mp4 audio-only" : ""}
+                              </span>
+                            </span>
+                          </button>
+                        </li>
+                      ))
+                    )}
                   </ul>
-                  <p className="text-[11px] text-mist">
-                    Backup: taruh file di <code className="text-foam">public/music/</code> lalu isi{" "}
-                    <code className="text-foam">url</code> di playlist.json
-                  </p>
+                  {msg && tab === "music" ? <p className="text-xs text-accent-dim">{msg}</p> : null}
                 </div>
               ) : null}
             </div>

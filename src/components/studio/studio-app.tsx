@@ -13,12 +13,22 @@ import { WaveMark } from "@/components/studio/wave-mark";
 import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { think, spillToFile } from "@/lib/brain/think";
+import { streamChat } from "@/lib/studio/client";
 import { downloadText } from "@/lib/studio/files";
 import { extractArtifacts } from "@/lib/studio/parse";
-import { ADMIN_TRIGGER } from "@/lib/studio/settings";
+import { ADMIN_TRIGGER, loadSettings } from "@/lib/studio/settings";
 import { selectActiveChat, useStudioStore } from "@/lib/studio/store";
-import { STARTERS, BLANK_HTML, type ActiveArtifact, type StudioMode } from "@/lib/studio/types";
+import {
+  STARTERS,
+  BLANK_HTML,
+  type ActiveArtifact,
+  type ImageVersion,
+} from "@/lib/studio/types";
 import { cn } from "@/lib/utils";
+
+function wantsImage(text: string) {
+  return /\b(gambar|image|foto|lukis|draw|buatkan\s+gambar|generate\s+image)\b/i.test(text);
+}
 
 export function StudioApp() {
   const hydrate = useStudioStore((state) => state.hydrate);
@@ -38,7 +48,7 @@ export function StudioApp() {
   const chat = useStudioStore(selectActiveChat);
 
   const [draft, setDraft] = useState("");
-  const [mode, setMode] = useState<StudioMode>("chat");
+  const [aiVersion, setAiVersion] = useState<ImageVersion>("2");
   const [navOpen, setNavOpen] = useState(false);
   const [dockOpen, setDockOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -51,6 +61,9 @@ export function StudioApp() {
     hydrate();
     try {
       setAnnounce(localStorage.getItem("samudra-announce") ?? "");
+      const s = loadSettings();
+      if (s.preferProvider === "gemini") setAiVersion("1");
+      if (s.preferProvider === "groq") setAiVersion("2");
     } catch {
       /* */
     }
@@ -76,11 +89,10 @@ export function StudioApp() {
     setStreaming(null);
   }
 
-  async function send(text = draft, sendMode = mode) {
+  async function send(text = draft) {
     const prompt = text.trim();
     if (!prompt || busy) return;
 
-    // Admin trigger
     if (prompt === ADMIN_TRIGGER || prompt.toUpperCase() === "/SAMUDRA.PANEL") {
       setDraft("");
       setAdminOpen(true);
@@ -99,7 +111,8 @@ export function StudioApp() {
     abortRef.current = controller;
 
     try {
-      if (sendMode === "image") {
+      // Gambar: deteksi otomatis → otak lokal SVG
+      if (wantsImage(prompt)) {
         const drawn = think(prompt, "image");
         patchMessage(conversationId, assistantId, {
           content: drawn.text,
@@ -109,6 +122,62 @@ export function StudioApp() {
         return;
       }
 
+      const settings = loadSettings();
+      const geminiKey = settings.geminiKey.trim();
+      const groqKey = settings.groqKey.trim();
+      const provider = aiVersion === "1" ? "gemini" : "groq";
+      const hasCloudKey = provider === "gemini" ? Boolean(geminiKey) : Boolean(groqKey);
+
+      // V1/V2 + key → API cloud
+      if (hasCloudKey) {
+        const history =
+          useStudioStore
+            .getState()
+            .conversations.find((c) => c.id === conversationId)
+            ?.messages.filter((m) => m.id !== assistantId && !m.error)
+            .map((m) => ({
+              role: m.role as "user" | "assistant",
+              content: m.content,
+            })) ?? [];
+
+        const systemPrompt = [
+          settings.systemPrompt,
+          settings.personality ? `Gaya bahasa: ${settings.personality}.` : "",
+        ]
+          .filter(Boolean)
+          .join("\n");
+
+        let assembled = "";
+        await streamChat({
+          messages: history,
+          signal: controller.signal,
+          provider,
+          geminiKey: geminiKey || undefined,
+          groqKey: groqKey || undefined,
+          systemPrompt,
+          onDelta: (chunk) => {
+            assembled += chunk;
+            patchMessage(conversationId, assistantId, { content: assembled });
+          },
+        });
+
+        const found = extractArtifacts(assembled, assistantId).filter((item) => item.runnable);
+        const last = found.at(-1);
+        if (last) {
+          openArtifact({
+            conversationId,
+            messageId: assistantId,
+            artifactId: last.id,
+            lang: last.lang,
+            code: last.code,
+            filename: last.filename,
+          });
+          if (window.matchMedia("(min-width: 1024px)").matches) setDockOpen(true);
+        }
+        return;
+      }
+
+      // Tanpa key → otak lokal
       const reply = think(prompt, "chat");
       const spilled = spillToFile(reply.text);
       if (spilled) downloadText(spilled.filename, spilled.full, "text/markdown;charset=utf-8");
@@ -133,9 +202,7 @@ export function StudioApp() {
           code: last.code,
           filename: last.filename,
         });
-        if (window.matchMedia("(min-width: 1024px)").matches) {
-          setDockOpen(true);
-        }
+        if (window.matchMedia("(min-width: 1024px)").matches) setDockOpen(true);
       }
     } catch (error) {
       if (controller.signal.aborted) return;
@@ -195,7 +262,7 @@ export function StudioApp() {
                 {chat?.title ?? "Studio lautan"}
               </p>
               <span className="hidden rounded-full bg-tide px-2.5 py-1 font-mono text-[10px] uppercase tracking-wide text-mist md:inline">
-                Otak lokal
+                {aiVersion === "1" ? "V1 Gemini" : "V2 Groq"}
               </span>
               <div className="ml-auto flex items-center gap-1">
                 <SettingsButton open={settingsOpen} onOpenChange={setSettingsOpen} />
@@ -222,8 +289,7 @@ export function StudioApp() {
               {empty ? (
                 <EmptyState
                   onPick={(prompt) => {
-                    setMode("chat");
-                    void send(prompt, "chat");
+                    void send(prompt);
                   }}
                   onScratch={() => {
                     openArtifact({
@@ -255,8 +321,8 @@ export function StudioApp() {
             <Composer
               value={draft}
               onChange={setDraft}
-              mode={mode}
-              onMode={setMode}
+              aiVersion={aiVersion}
+              onAiVersion={setAiVersion}
               busy={busy}
               onSend={() => void send()}
               onStop={stop}
@@ -279,9 +345,7 @@ export function StudioApp() {
           <Dialog.Portal>
             <Dialog.Overlay className="fixed inset-0 z-40 bg-abyss/70 md:hidden" />
             <Dialog.Content
-              className={cn(
-                "fixed inset-y-0 left-0 z-50 w-[min(18.5rem,88vw)] outline-none md:hidden",
-              )}
+              className="fixed inset-y-0 left-0 z-50 w-[min(18.5rem,88vw)] outline-none md:hidden"
               aria-describedby={undefined}
             >
               <Dialog.Title className="sr-only">Percakapan</Dialog.Title>
@@ -358,7 +422,7 @@ function EmptyState({
   onPick: (prompt: string) => void;
   onScratch: () => void;
 }) {
-  let welcome = "Tempat kerja lautan. Otaknya ada di situs ini, tanpa API key lain.";
+  let welcome = "Tempat kerja lautan. Isi key V1/V2 di pengaturan, atau pakai otak lokal tanpa key.";
   try {
     welcome = localStorage.getItem("samudra-welcome") || welcome;
   } catch {
