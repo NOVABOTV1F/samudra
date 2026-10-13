@@ -1,0 +1,26 @@
+{
+  "tracks": [
+    {
+      "id": "m1",
+      "title": "Ombak Tenang",
+      "artist": "Samudra Ambient",
+      "url": "https://cdn.pixabay.com/download/audio/2022/03/15/audio_c9a4a1d834.mp3?filename=relaxing-145038.mp3",
+      "cover": ""
+    },
+    {
+      "id": "m2",
+      "title": "Biru Pagi",
+      "artist": "Samudra Ambient",
+      "url": "https://cdn.pixabay.com/download/audio/2021/11/25/audio_91b298bc80.mp3?filename=lofi-study-112191.mp3",
+      "cover": ""
+    },
+    {
+      "id": "m3",
+      "title": "Arus Lembut",
+      "artist": "Samudra Ambient",
+      "url": "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=chill-abstract-intention-12099.mp3",
+      "cover": ""
+    }
+  ],
+  "note": "Ganti url ke file di public/music/ atau raw GitHub. Contoh: /music/lagu1.mp3"
+}
