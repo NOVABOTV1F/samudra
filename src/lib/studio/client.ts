@@ -1,12 +1,11 @@
 export type ChatTurn = { role: "user" | "assistant"; content: string };
 
+/** Key Gemini/Groq hanya dari Cloudflare env — client tidak mengirim key */
 export async function streamChat(options: {
   messages: ChatTurn[];
   signal: AbortSignal;
   onDelta: (chunk: string) => void;
   provider?: "brain" | "gemini" | "groq" | "xai";
-  geminiKey?: string;
-  groqKey?: string;
   systemPrompt?: string;
 }) {
   const response = await fetch("/api/chat", {
@@ -15,8 +14,6 @@ export async function streamChat(options: {
     body: JSON.stringify({
       messages: options.messages,
       provider: options.provider,
-      geminiKey: options.geminiKey,
-      groqKey: options.groqKey,
       systemPrompt: options.systemPrompt,
     }),
     signal: options.signal,

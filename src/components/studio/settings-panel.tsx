@@ -11,19 +11,16 @@ import {
 } from "@/lib/studio/settings";
 import { cn } from "@/lib/utils";
 
-type Track = { id: string; title: string; artist: string; url: string; hint?: string };
+type Track = { id: string; title: string; artist: string; url: string };
 
-/** Hanya audio: mp3/m4a/ogg/wav + mp4 (diputar lewat Audio = tanpa video) */
 function isAudioUrl(url: string) {
   const u = url.trim().toLowerCase();
   if (!u) return false;
   if (u.startsWith("data:audio/")) return true;
-  if (u.startsWith("data:video/mp4")) return true; // audio-only via <audio>
   return /\.(mp3|m4a|aac|ogg|wav|mp4)(\?|#|$)/i.test(u) || /raw\.githubusercontent\.com/i.test(u);
 }
 
 function isProbablyVideoOnly(url: string) {
-  // webm/mov ditolak; mp4 tetap boleh (audio track saja)
   return /\.(webm|mov|avi|mkv)(\?|#|$)/i.test(url.trim());
 }
 
@@ -99,13 +96,8 @@ export function SettingsPanel({
       setMsg(`"${t.title}" butuh URL raw audio (mp3/mp4).`);
       return;
     }
-    if (isProbablyVideoOnly(t.url)) {
-      setMsg("Format video murni tidak didukung. Pakai mp3 atau mp4 (hanya audio yang diputar).");
-      return;
-    }
     if (!audioRef.current) audioRef.current = new Audio();
     const a = audioRef.current;
-    // mp4 ikut lewat <audio> → tidak ada video, hanya soundtrack
     if (current?.id === t.id && playing) {
       a.pause();
       setPlaying(false);
@@ -117,15 +109,9 @@ export function SettingsPanel({
       .then(() => {
         setCurrent(t);
         setPlaying(true);
-        setMsg(
-          /\.mp4(\?|#|$)/i.test(t.url)
-            ? "MP4: video diabaikan, hanya musik yang diputar."
-            : "",
-        );
+        setMsg(/\.mp4/i.test(t.url) ? "MP4: hanya musik (video tidak ditampilkan)." : "");
       })
-      .catch(() => {
-        setMsg("Gagal putar. Pastikan URL raw bisa diakses (CORS) dan berisi audio.");
-      });
+      .catch(() => setMsg("Gagal putar. Cek URL raw / CORS."));
     a.onended = () => setPlaying(false);
   }
 
@@ -143,14 +129,14 @@ export function SettingsPanel({
 
   const accessLabel = hasActiveAccess(s)
     ? `${s.accessTier} · sampai ${new Date(s.accessUntil).toLocaleString("id-ID")}`
-    : "Belum aktif (otak lokal tetap jalan)";
+    : "Belum aktif";
 
   return (
     <>
       <Dialog.Root open={open} onOpenChange={onOpenChange}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-abyss/60" />
-          <Dialog.Content className="fixed inset-x-3 top-[8%] z-50 mx-auto max-h-[84dvh] w-full max-w-lg overflow-hidden rounded-2xl border border-border bg-tide shadow-[var(--shadow-border)] outline-none md:inset-x-auto">
+          <Dialog.Content className="fixed inset-x-3 top-[8%] z-50 mx-auto max-h-[84dvh] w-full max-w-lg overflow-hidden rounded-2xl border border-border bg-tide shadow-[var(--shadow-border)] outline-none">
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
               <Dialog.Title className="text-sm font-medium text-foam">Pengaturan</Dialog.Title>
               <Dialog.Close asChild>
@@ -164,7 +150,7 @@ export function SettingsPanel({
               {(
                 [
                   ["prompt", "Prompt"],
-                  ["keys", "API Keys"],
+                  ["keys", "Akses"],
                   ["music", "Music"],
                 ] as const
               ).map(([id, label]) => (
@@ -185,76 +171,62 @@ export function SettingsPanel({
             <div className="max-h-[min(60dvh,28rem)] overflow-y-auto px-4 py-3">
               {tab === "prompt" ? (
                 <div className="space-y-3">
-                  <label className="block text-xs text-mist">Prompt awal / sistem</label>
+                  <label className="block text-xs text-mist">Prompt awal</label>
                   <textarea
-                    className="min-h-24 w-full rounded-xl border border-border bg-depth px-3 py-2 text-sm text-ink outline-none focus:ring-2 focus:ring-accent/40"
+                    className="min-h-24 w-full rounded-xl border border-border bg-depth px-3 py-2 text-sm outline-none"
                     value={s.systemPrompt}
                     onChange={(e) => persist({ ...s, systemPrompt: e.target.value })}
                   />
-                  <label className="block text-xs text-mist">Gaya bahasa / kepribadian</label>
+                  <label className="block text-xs text-mist">Gaya bahasa</label>
                   <input
-                    className="w-full rounded-xl border border-border bg-depth px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-accent/40"
+                    className="w-full rounded-xl border border-border bg-depth px-3 py-2 text-sm outline-none"
                     value={s.personality}
                     onChange={(e) => persist({ ...s, personality: e.target.value })}
-                    placeholder="ramah, ringkas, formal…"
                   />
                 </div>
               ) : null}
 
               {tab === "keys" ? (
                 <div className="space-y-3">
-                  <p className="rounded-xl bg-lagoon/80 px-3 py-2 text-xs text-mist">
-                    Status: <strong className="text-foam">{accessLabel}</strong>
+                  <div className="rounded-xl bg-lagoon/80 px-3 py-2 text-xs leading-relaxed text-mist">
+                    <strong className="text-foam">API key tidak diisi user.</strong>
                     <br />
-                    <strong>V1 = Gemini</strong> · <strong>V2 = Groq</strong> (tombol di chat)
+                    Key Gemini & Groq hanya di <strong>Cloudflare → Runtime secrets</strong>:
+                    <br />
+                    <code className="text-foam">GEMINI_API_KEY</code> (V1)
+                    <br />
+                    <code className="text-foam">GROQ_API_KEY</code> (V2)
+                    <br />
+                    User tinggal pilih V1/V2 di chat lalu ketik.
+                  </div>
+                  <p className="text-xs text-mist">
+                    Status lisensi lokal: <strong className="text-foam">{accessLabel}</strong>
                   </p>
-                  <label className="block text-xs text-mist">Kode lisensi</label>
+                  <label className="block text-xs text-mist">Kode lisensi (opsional)</label>
                   <div className="flex gap-2">
                     <input
-                      className="min-w-0 flex-1 rounded-xl border border-border bg-depth px-3 py-2 text-sm outline-none"
+                      className="min-w-0 flex-1 rounded-xl border border-border bg-depth px-3 py-2 text-sm"
                       value={code}
                       onChange={(e) => setCode(e.target.value)}
-                      placeholder="SAMUDRA-FREE / SAMUDRA-20K / SAMUDRA-PERM"
+                      placeholder="SAMUDRA-FREE / 20K / PERM"
                     />
                     <Button variant="primary" onClick={applyCode}>
                       Aktifkan
                     </Button>
                   </div>
-                  {msg && tab === "keys" ? <p className="text-xs text-accent-dim">{msg}</p> : null}
-
-                  <label className="block text-xs text-mist">GEMINI_API_KEY (V1)</label>
-                  <input
-                    type="password"
-                    className="w-full rounded-xl border border-border bg-depth px-3 py-2 text-sm"
-                    value={s.geminiKey}
-                    onChange={(e) => persist({ ...s, geminiKey: e.target.value })}
-                    placeholder="AIza…"
-                  />
-                  <label className="block text-xs text-mist">GROQ_API_KEY (V2 — rekomendasi)</label>
-                  <input
-                    type="password"
-                    className="w-full rounded-xl border border-border bg-depth px-3 py-2 text-sm"
-                    value={s.groqKey}
-                    onChange={(e) => persist({ ...s, groqKey: e.target.value })}
-                    placeholder="gsk_…"
-                  />
-                  <p className="text-[11px] text-mist">
-                    Isi key → pilih V1/V2 di chat → kirim. Tanpa key = otak lokal.
-                  </p>
+                  {msg ? <p className="text-xs text-accent-dim">{msg}</p> : null}
                 </div>
               ) : null}
 
               {tab === "music" ? (
                 <div className="space-y-3">
-                  <p className="text-[11px] leading-relaxed text-mist">
-                    URL harus <strong>raw</strong> (GitHub raw / link langsung file).
-                    <br />
-                    <strong>mp3</strong> = musik · <strong>mp4</strong> = hanya audio (video tidak ditampilkan).
+                  <p className="text-[11px] text-mist">
+                    URL raw mp3/mp4. MP4 = audio saja, tanpa video.
                   </p>
                   <div className="relative">
                     <Search className="pointer-events-none absolute top-2.5 left-3 size-4 text-mist" />
                     <input
-                      className="w-full rounded-xl border border-border bg-depth py-2 pr-3 pl-9 text-sm outline-none"
+                      className="w-full rounded-xl border border-border bg-depth py-2 pr-3 pl-9 text-sm"
                       placeholder="Cari musik…"
                       value={q}
                       onChange={(e) => setQ(e.target.value)}
@@ -262,9 +234,7 @@ export function SettingsPanel({
                   </div>
                   <ul className="max-h-56 space-y-1 overflow-y-auto">
                     {filtered.length === 0 ? (
-                      <li className="px-2 py-3 text-xs text-mist">
-                        Belum ada track valid. Isi url raw di public/music/playlist.json
-                      </li>
+                      <li className="px-2 py-3 text-xs text-mist">Belum ada track. Isi playlist.json (url raw).</li>
                     ) : (
                       filtered.map((t) => (
                         <li key={t.id}>
@@ -273,13 +243,10 @@ export function SettingsPanel({
                             onClick={() => playTrack(t)}
                             className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left hover:bg-lagoon"
                           >
-                            <Music2 className="size-4 shrink-0 text-accent" />
+                            <Music2 className="size-4 text-accent" />
                             <span className="min-w-0 flex-1">
                               <span className="block truncate text-sm text-foam">{t.title}</span>
-                              <span className="block truncate text-[11px] text-mist">
-                                {t.artist}
-                                {/\.mp4/i.test(t.url) ? " · mp4 audio-only" : ""}
-                              </span>
+                              <span className="block truncate text-[11px] text-mist">{t.artist}</span>
                             </span>
                           </button>
                         </li>
@@ -305,7 +272,7 @@ export function SettingsPanel({
           </div>
           <button
             type="button"
-            aria-label="Tutup pemutar"
+            aria-label="Tutup"
             onClick={() => {
               audioRef.current?.pause();
               setPlaying(false);

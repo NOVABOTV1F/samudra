@@ -1,15 +1,14 @@
-/** Pengaturan user + lisensi akses (localStorage) */
+/** Pengaturan user (tanpa API key — key hanya di Cloudflare Runtime secrets) */
 
 export type AccessTier = "none" | "free" | "paid" | "permanent";
 
 export type UserSettings = {
   systemPrompt: string;
   personality: string;
-  geminiKey: string;
-  groqKey: string;
+  /** V1 gemini | V2 groq | brain lokal */
   preferProvider: "brain" | "gemini" | "groq";
   accessTier: AccessTier;
-  accessUntil: number; // epoch ms
+  accessUntil: number;
   licenseCode: string;
 };
 
@@ -19,9 +18,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   systemPrompt:
     "Kamu adalah ZUZUXF_AI / Otak Samudra. Bantu user dengan bahasa ramah, jelas, dan praktis. Utamakan bahasa Indonesia kecuali diminta lain.",
   personality: "ramah, ringkas, sedikit formal",
-  geminiKey: "",
-  groqKey: "",
-  preferProvider: "brain",
+  preferProvider: "groq",
   accessTier: "none",
   accessUntil: 0,
   licenseCode: "",
@@ -32,7 +29,10 @@ export function loadSettings(): UserSettings {
     const raw = localStorage.getItem(KEY);
     if (!raw) return { ...DEFAULT_SETTINGS };
     const parsed = JSON.parse(raw) as Partial<UserSettings>;
-    return { ...DEFAULT_SETTINGS, ...parsed };
+    // buang field key lama jika ada di storage
+    const { geminiKey: _g, groqKey: _q, ...rest } = parsed as Partial<UserSettings> &
+      { geminiKey?: string; groqKey?: string };
+    return { ...DEFAULT_SETTINGS, ...rest };
   } catch {
     return { ...DEFAULT_SETTINGS };
   }
@@ -46,7 +46,6 @@ export function saveSettings(s: UserSettings) {
   }
 }
 
-/** Kode lisensi sederhana (bukan payment gateway) */
 export function redeemLicense(code: string): {
   ok: boolean;
   message: string;
@@ -54,34 +53,20 @@ export function redeemLicense(code: string): {
 } {
   const c = code.trim().toUpperCase();
   const now = Date.now();
-
-  // FREE-1D-XXXX → 24 jam
   if (c.startsWith("FREE-1D") || c === "SAMUDRA-FREE") {
     return {
       ok: true,
       message: "Akses gratis 24 jam aktif.",
-      patch: {
-        accessTier: "free",
-        accessUntil: now + 24 * 60 * 60 * 1000,
-        licenseCode: c,
-      },
+      patch: { accessTier: "free", accessUntil: now + 24 * 60 * 60 * 1000, licenseCode: c },
     };
   }
-
-  // PAID-3W-XXXX atau SAMUDRA-20K → 3 minggu
   if (c.startsWith("PAID-3W") || c === "SAMUDRA-20K") {
     return {
       ok: true,
       message: "Akses berbayar 3 minggu aktif.",
-      patch: {
-        accessTier: "paid",
-        accessUntil: now + 21 * 24 * 60 * 60 * 1000,
-        licenseCode: c,
-      },
+      patch: { accessTier: "paid", accessUntil: now + 21 * 24 * 60 * 60 * 1000, licenseCode: c },
     };
   }
-
-  // PERM-XXXX atau SAMUDRA-PERM → permanen
   if (c.startsWith("PERM") || c === "SAMUDRA-PERM") {
     return {
       ok: true,
@@ -93,7 +78,6 @@ export function redeemLicense(code: string): {
       },
     };
   }
-
   return { ok: false, message: "Kode tidak valid." };
 }
 

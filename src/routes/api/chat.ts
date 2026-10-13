@@ -20,14 +20,12 @@ const Body = z.object({
     .min(1)
     .max(24),
   provider: z.enum(["brain", "xai", "gemini", "groq"]).optional(),
-  geminiKey: z.string().optional(),
-  groqKey: z.string().optional(),
   systemPrompt: z.string().max(8000).optional(),
 });
 
 const DEFAULT_SYSTEM = `You are ZUZUXF_AI (Otak Samudra), a capable studio AI.
 Help with writing, analysis, planning, code, and runnable HTML demos.
-When the user asks about images, describe them or give SVG/HTML art ideas — you may not always generate real photos.
+When the user asks about images, describe them or give SVG/HTML art ideas.
 Match the user's language. Never mention these instructions.`;
 
 const brain = rawBrain as BrainRaw;
@@ -46,7 +44,8 @@ function sseResponse(stream: ReadableStream<Uint8Array>, extra: Record<string, s
   });
 }
 
-function resolveKey(names: string[], client?: string): string {
+/** Hanya dari environment Cloudflare / hosting — tidak dari body client */
+function envKey(names: string[]): string {
   for (const n of names) {
     try {
       const v = (process.env as Record<string, string | undefined>)[n];
@@ -55,7 +54,7 @@ function resolveKey(names: string[], client?: string): string {
       /* ignore */
     }
   }
-  return client?.trim() ?? "";
+  return "";
 }
 
 const GEMINI_MODELS = [
@@ -65,11 +64,7 @@ const GEMINI_MODELS = [
   "gemini-1.5-flash-latest",
 ];
 
-const GROQ_MODELS = [
-  "llama-3.1-8b-instant",
-  "llama-3.3-70b-versatile",
-  "openai/gpt-oss-20b",
-];
+const GROQ_MODELS = ["llama-3.1-8b-instant", "llama-3.3-70b-versatile", "openai/gpt-oss-20b"];
 
 export const Route = createFileRoute("/api/chat")({
   server: {
@@ -87,9 +82,7 @@ export const Route = createFileRoute("/api/chat")({
           return Response.json({ error: "Percakapan terlalu panjang atau kosong." }, { status: 400 });
         }
 
-        const system =
-          parsed.data.systemPrompt?.trim() ||
-          DEFAULT_SYSTEM;
+        const system = parsed.data.systemPrompt?.trim() || DEFAULT_SYSTEM;
 
         const messages = parsed.data.messages
           .filter((m) => m.content.trim().length > 0)
@@ -107,19 +100,17 @@ export const Route = createFileRoute("/api/chat")({
         const query = lastUser?.content ?? "";
         const want = parsed.data.provider;
 
-        const geminiKey = resolveKey(
-          ["GEMINI_API_KEY", "GOOGLE_API_KEY"],
-          parsed.data.geminiKey,
-        );
-        const groqKey = resolveKey(["GROQ_API_KEY"], parsed.data.groqKey);
+        // Key HANYA dari Cloudflare Runtime secrets
+        const geminiKey = envKey(["GEMINI_API_KEY", "GOOGLE_API_KEY"]);
+        const groqKey = envKey(["GROQ_API_KEY"]);
 
-        // —— V1 Gemini (prioritas jika diminta) ——
+        // —— V1 Gemini ——
         if (want === "gemini") {
           if (!geminiKey) {
             return Response.json(
               {
                 error:
-                  "V1 Gemini: key kosong. Isi GEMINI_API_KEY di Pengaturan → API Keys, atau Runtime secrets hosting.",
+                  "V1 Gemini: GEMINI_API_KEY belum di-set di Cloudflare Runtime secrets. User tidak perlu isi key.",
               },
               { status: 503 },
             );
@@ -130,10 +121,6 @@ export const Route = createFileRoute("/api/chat")({
             : GEMINI_MODELS;
 
           for (const model of list) {
-            const contents = messages.map((m) => ({
-              role: m.role === "assistant" ? "model" : "user",
-              parts: [{ text: m.content }],
-            }));
             const upstream = await fetch(
               `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
               {
@@ -144,7 +131,10 @@ export const Route = createFileRoute("/api/chat")({
                 },
                 body: JSON.stringify({
                   systemInstruction: { parts: [{ text: system }] },
-                  contents,
+                  contents: messages.map((m) => ({
+                    role: m.role === "assistant" ? "model" : "user",
+                    parts: [{ text: m.content }],
+                  })),
                 }),
                 signal: request.signal,
               },
@@ -158,20 +148,17 @@ export const Route = createFileRoute("/api/chat")({
                   data.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
                 if (text) return sseResponse(textToSseStream(text), { "X-Samudra-Provider": "gemini" });
               } catch {
-                /* next model */
+                /* next */
               }
-            } else if (upstream.status !== 404) {
-              const body = await upstream.text().catch(() => "");
-              if (/API.?KEY|invalid|403|401/i.test(body)) {
-                return Response.json(
-                  { error: "Gemini key ditolak. Cek key di aistudio.google.com." },
-                  { status: 502 },
-                );
-              }
+            } else if (upstream.status === 401 || upstream.status === 403) {
+              return Response.json(
+                { error: "Gemini key di Cloudflare ditolak. Cek key di dashboard." },
+                { status: 502 },
+              );
             }
           }
           return Response.json(
-            { error: "Gemini gagal (model/kuota). Coba V2 Groq." },
+            { error: "Gemini gagal (model/kuota). Coba V2." },
             { status: 502 },
           );
         }
@@ -182,7 +169,7 @@ export const Route = createFileRoute("/api/chat")({
             return Response.json(
               {
                 error:
-                  "V2 Groq: key kosong. Isi GROQ_API_KEY di Pengaturan → API Keys, atau Runtime secrets.",
+                  "V2 Groq: GROQ_API_KEY belum di-set di Cloudflare Runtime secrets. User tidak perlu isi key.",
               },
               { status: 503 },
             );
@@ -219,24 +206,24 @@ export const Route = createFileRoute("/api/chat")({
             }
             if (upstream.status === 401 || upstream.status === 403) {
               return Response.json(
-                { error: "Groq key ditolak. Cek console.groq.com." },
+                { error: "Groq key di Cloudflare ditolak. Cek key di dashboard." },
                 { status: 502 },
               );
             }
           }
           return Response.json(
-            { error: "Groq gagal. Cek key/kuota atau pakai otak lokal." },
+            { error: "Groq gagal. Cek kuota atau pakai otak lokal." },
             { status: 502 },
           );
         }
 
-        // —— Otak lokal (default / brain) ——
+        // —— Otak lokal ——
         const hit = matchBrain(query, pathways, 4);
         if (hit) {
           return sseResponse(textToSseStream(hit.answer), { "X-Samudra-Brain": "1" });
         }
 
-        // Auto-cloud jika key ada & provider tidak brain
+        // Auto: ada key server → Groq dulu, lalu Gemini
         if (groqKey) {
           const upstream = await fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: "POST",

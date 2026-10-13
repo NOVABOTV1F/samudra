@@ -24,7 +24,6 @@ import {
   type ActiveArtifact,
   type ImageVersion,
 } from "@/lib/studio/types";
-import { cn } from "@/lib/utils";
 
 function wantsImage(text: string) {
   return /\b(gambar|image|foto|lukis|draw|buatkan\s+gambar|generate\s+image)\b/i.test(text);
@@ -111,7 +110,6 @@ export function StudioApp() {
     abortRef.current = controller;
 
     try {
-      // Gambar: deteksi otomatis → otak lokal SVG
       if (wantsImage(prompt)) {
         const drawn = think(prompt, "image");
         patchMessage(conversationId, assistantId, {
@@ -123,72 +121,52 @@ export function StudioApp() {
       }
 
       const settings = loadSettings();
-      const geminiKey = settings.geminiKey.trim();
-      const groqKey = settings.groqKey.trim();
+      // V1/V2 → server pakai key Cloudflare; user tidak kirim key
       const provider = aiVersion === "1" ? "gemini" : "groq";
-      const hasCloudKey = provider === "gemini" ? Boolean(geminiKey) : Boolean(groqKey);
 
-      // V1/V2 + key → API cloud
-      if (hasCloudKey) {
-        const history =
-          useStudioStore
-            .getState()
-            .conversations.find((c) => c.id === conversationId)
-            ?.messages.filter((m) => m.id !== assistantId && !m.error)
-            .map((m) => ({
-              role: m.role as "user" | "assistant",
-              content: m.content,
-            })) ?? [];
+      const history =
+        useStudioStore
+          .getState()
+          .conversations.find((c) => c.id === conversationId)
+          ?.messages.filter((m) => m.id !== assistantId && !m.error)
+          .map((m) => ({
+            role: m.role as "user" | "assistant",
+            content: m.content,
+          })) ?? [];
 
-        const systemPrompt = [
-          settings.systemPrompt,
-          settings.personality ? `Gaya bahasa: ${settings.personality}.` : "",
-        ]
-          .filter(Boolean)
-          .join("\n");
+      const systemPrompt = [
+        settings.systemPrompt,
+        settings.personality ? `Gaya bahasa: ${settings.personality}.` : "",
+      ]
+        .filter(Boolean)
+        .join("\n");
 
-        let assembled = "";
+      let assembled = "";
+      try {
         await streamChat({
           messages: history,
           signal: controller.signal,
           provider,
-          geminiKey: geminiKey || undefined,
-          groqKey: groqKey || undefined,
           systemPrompt,
           onDelta: (chunk) => {
             assembled += chunk;
             patchMessage(conversationId, assistantId, { content: assembled });
           },
         });
-
-        const found = extractArtifacts(assembled, assistantId).filter((item) => item.runnable);
-        const last = found.at(-1);
-        if (last) {
-          openArtifact({
-            conversationId,
-            messageId: assistantId,
-            artifactId: last.id,
-            lang: last.lang,
-            code: last.code,
-            filename: last.filename,
-          });
-          if (window.matchMedia("(min-width: 1024px)").matches) setDockOpen(true);
-        }
-        return;
-      }
-
-      // Tanpa key → otak lokal
-      const reply = think(prompt, "chat");
-      const spilled = spillToFile(reply.text);
-      if (spilled) downloadText(spilled.filename, spilled.full, "text/markdown;charset=utf-8");
-      const shown = spilled?.preview ?? reply.text;
-      let assembled = "";
-      const size = 180;
-      for (let index = 0; index < shown.length; index += size) {
-        if (controller.signal.aborted) return;
-        assembled += shown.slice(index, index + size);
-        patchMessage(conversationId, assistantId, { content: assembled, pathway: reply.pathway });
-        await new Promise((resolve) => setTimeout(resolve, 12));
+      } catch (cloudErr) {
+        // Fallback otak lokal jika key Cloudflare belum set / error
+        const reply = think(prompt, "chat");
+        const spilled = spillToFile(reply.text);
+        if (spilled) downloadText(spilled.filename, spilled.full, "text/markdown;charset=utf-8");
+        assembled = spilled?.preview ?? reply.text;
+        patchMessage(conversationId, assistantId, {
+          content:
+            assembled +
+            (cloudErr instanceof Error
+              ? `\n\n_Catatan: cloud (${provider}) belum siap — ${cloudErr.message}_`
+              : ""),
+          pathway: reply.pathway,
+        });
       }
 
       const found = extractArtifacts(assembled, assistantId).filter((item) => item.runnable);
@@ -246,33 +224,21 @@ export function StudioApp() {
         <div className="relative z-10 flex min-w-0 flex-1">
           <main className="flex min-w-0 flex-1 flex-col">
             <header className="flex h-14 items-center gap-2 px-2 md:px-4">
-              <Button
-                size="icon"
-                className="md:hidden"
-                aria-label="Buka percakapan"
-                onClick={() => setNavOpen(true)}
-              >
+              <Button size="icon" className="md:hidden" aria-label="Buka percakapan" onClick={() => setNavOpen(true)}>
                 <Menu />
               </Button>
               <div className="flex min-w-0 items-center gap-2 md:hidden">
                 <WaveMark className="size-6" />
                 <span className="font-display text-base tracking-tight">Samudra</span>
               </div>
-              <p className="hidden truncate text-sm text-mist md:block">
-                {chat?.title ?? "Studio lautan"}
-              </p>
+              <p className="hidden truncate text-sm text-mist md:block">{chat?.title ?? "Studio lautan"}</p>
               <span className="hidden rounded-full bg-tide px-2.5 py-1 font-mono text-[10px] uppercase tracking-wide text-mist md:inline">
                 {aiVersion === "1" ? "V1 Gemini" : "V2 Groq"}
               </span>
               <div className="ml-auto flex items-center gap-1">
                 <SettingsButton open={settingsOpen} onOpenChange={setSettingsOpen} />
                 {artifact ? (
-                  <Button
-                    size="icon"
-                    className="md:hidden"
-                    aria-label="Buka ruang kerja"
-                    onClick={() => setDockOpen(true)}
-                  >
+                  <Button size="icon" className="md:hidden" aria-label="Buka ruang kerja" onClick={() => setDockOpen(true)}>
                     <PanelRight />
                   </Button>
                 ) : null}
@@ -280,17 +246,13 @@ export function StudioApp() {
             </header>
 
             {announce ? (
-              <div className="mx-3 mb-1 rounded-xl bg-lagoon px-3 py-2 text-xs text-foam md:mx-4">
-                {announce}
-              </div>
+              <div className="mx-3 mb-1 rounded-xl bg-lagoon px-3 py-2 text-xs text-foam md:mx-4">{announce}</div>
             ) : null}
 
             <div ref={scrollerRef} className="min-h-0 flex-1 overflow-y-auto">
               {empty ? (
                 <EmptyState
-                  onPick={(prompt) => {
-                    void send(prompt);
-                  }}
+                  onPick={(prompt) => void send(prompt)}
                   onScratch={() => {
                     openArtifact({
                       conversationId: activeId ?? "scratch",
@@ -331,12 +293,7 @@ export function StudioApp() {
 
           {artifact ? (
             <div className="hidden w-[min(28rem,42vw)] shrink-0 border-l border-border lg:block">
-              <ArtifactDock
-                artifact={artifact}
-                onClose={closeArtifact}
-                onCode={updateArtifactCode}
-                className="h-full"
-              />
+              <ArtifactDock artifact={artifact} onClose={closeArtifact} onCode={updateArtifactCode} className="h-full" />
             </div>
           ) : null}
         </div>
@@ -344,10 +301,7 @@ export function StudioApp() {
         <Dialog.Root open={navOpen} onOpenChange={setNavOpen}>
           <Dialog.Portal>
             <Dialog.Overlay className="fixed inset-0 z-40 bg-abyss/70 md:hidden" />
-            <Dialog.Content
-              className="fixed inset-y-0 left-0 z-50 w-[min(18.5rem,88vw)] outline-none md:hidden"
-              aria-describedby={undefined}
-            >
+            <Dialog.Content className="fixed inset-y-0 left-0 z-50 w-[min(18.5rem,88vw)] outline-none md:hidden" aria-describedby={undefined}>
               <Dialog.Title className="sr-only">Percakapan</Dialog.Title>
               <Sidebar
                 conversations={conversations}
@@ -372,10 +326,7 @@ export function StudioApp() {
         <Dialog.Root open={Boolean(mobileArtifact) && dockOpen} onOpenChange={setDockOpen}>
           <Dialog.Portal>
             <Dialog.Overlay className="fixed inset-0 z-40 bg-abyss/70 lg:hidden" />
-            <Dialog.Content
-              className="fixed inset-x-0 bottom-0 z-50 h-[min(88dvh,40rem)] outline-none lg:hidden"
-              aria-describedby={undefined}
-            >
+            <Dialog.Content className="fixed inset-x-0 bottom-0 z-50 h-[min(88dvh,40rem)] outline-none lg:hidden" aria-describedby={undefined}>
               <Dialog.Title className="sr-only">Ruang kerja</Dialog.Title>
               {mobileArtifact ? (
                 <div className="relative h-full rounded-t-2xl border-t border-border bg-depth">
@@ -405,9 +356,7 @@ export function StudioApp() {
           theme="light"
           position="top-center"
           toastOptions={{
-            classNames: {
-              toast: "bg-tide text-ink border-border shadow-[var(--shadow-border)]",
-            },
+            classNames: { toast: "bg-tide text-ink border-border shadow-[var(--shadow-border)]" },
           }}
         />
       </div>
@@ -422,7 +371,7 @@ function EmptyState({
   onPick: (prompt: string) => void;
   onScratch: () => void;
 }) {
-  let welcome = "Tempat kerja lautan. Isi key V1/V2 di pengaturan, atau pakai otak lokal tanpa key.";
+  let welcome = "Langsung chat. Key AI ada di server (Cloudflare), bukan di HP user.";
   try {
     welcome = localStorage.getItem("samudra-welcome") || welcome;
   } catch {
@@ -446,11 +395,7 @@ function EmptyState({
           </li>
         ))}
       </ul>
-      <button
-        type="button"
-        onClick={onScratch}
-        className="mt-4 self-start rounded-xl px-3 py-2 text-sm text-mist transition-colors hover:text-foam"
-      >
+      <button type="button" onClick={onScratch} className="mt-4 self-start rounded-xl px-3 py-2 text-sm text-mist hover:text-foam">
         Atau buka ruang kerja kosong
       </button>
     </div>
