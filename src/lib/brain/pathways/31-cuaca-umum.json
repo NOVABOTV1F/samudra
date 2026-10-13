@@ -1,0 +1,8 @@
+{
+  "id": "cuaca-umum",
+  "title": "Cuaca",
+  "tags": ["info"],
+  "keywords": ["cuaca", "hujan", "panas", "weather"],
+  "patterns": ["cuaca\\s*(hari ini|besok)?"],
+  "answer": "Mode **otak lokal** tidak punya data cuaca live (butuh API cuaca).\n\nSaran: cek BMKG / aplikasi cuaca di HP. Kalau nanti kamu tambah jalur + API cuaca di server, Otak Samudra bisa menjawab real-time."
+}

@@ -1,0 +1,8 @@
+{
+  "id": "python-hello",
+  "title": "Python Hello",
+  "tags": ["code", "python"],
+  "keywords": ["python", "hello world", "belajar python", "print python"],
+  "patterns": ["python\\s*(hello|dasar|pemula)"],
+  "answer": "Contoh **Python** pemula:\n\n```python\nprint(\"Halo dari Otak Samudra!\")\n\nnama = input(\"Namamu: \")\nprint(f\"Hai, {nama}!\")\n\nfor i in range(1, 6):\n    print(\"Hitung\", i)\n```\n\nJalankan di komputer dengan `python file.py`."
+}

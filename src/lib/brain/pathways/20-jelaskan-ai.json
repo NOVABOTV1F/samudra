@@ -1,0 +1,8 @@
+{
+  "id": "jelaskan-ai",
+  "title": "Jelaskan AI",
+  "tags": ["knowledge"],
+  "keywords": ["jelaskan ai", "apa itu ai", "artificial intelligence", "kecerdasan buatan", "cara kerja ai", "llm"],
+  "patterns": ["jelaskan\\s*(ai|kecerdasan)", "apa\\s*itu\\s*ai"],
+  "answer": "## AI itu apa?\n\n**Analogi:** AI modern (LLM) seperti perpustakaan raksasa yang sudah membaca banyak teks, lalu belajar *pola* kata berikutnya yang paling masuk akal — bukan \"berpikir\" seperti manusia.\n\n### Cara kerja singkat\n1. Teks diubah jadi angka (token/embedding)\n2. Jaringan saraf memprediksi kelanjutan\n3. Jawaban disusun token demi token\n\n### 3 miskonsepsi\n1. **AI selalu benar** — sering meyakinkan tapi bisa salah (halusinasi)\n2. **AI paham seperti manusia** — ia memodel statistik bahasa, bukan pengalaman hidup\n3. **AI = satu otak** — ada banyak model, ukuran, dan batasan berbeda\n\n### Otak Samudra\nMode lokal memakai **jalur tetap** di GitHub (bukan LLM). Cocok untuk template & FAQ; untuk reasoning bebas tetap butuh model cloud."
+}

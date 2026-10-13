@@ -1,0 +1,8 @@
+{
+  "id": "todo-html",
+  "title": "Todo App",
+  "tags": ["code", "html"],
+  "keywords": ["todo", "to do", "daftar tugas", "checklist app"],
+  "patterns": ["buat(kan)?\\s*(todo|daftar tugas)"],
+  "answer": "Aplikasi **Todo** sederhana:\n\n```html\n<!doctype html>\n<html lang=\"id\"><head>\n<meta charset=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"/>\n<title>Todo</title>\n<style>\nbody{margin:0;background:#0b1220;color:#e8f1ff;font:16px system-ui;display:grid;place-items:center;min-height:100vh}\n.box{width:min(420px,92vw);background:#132033;padding:1.25rem;border-radius:1rem}\ninput,button{padding:.6rem .8rem;border-radius:.5rem;border:0}\ninput{width:70%}button{background:#5eb0ff;font-weight:600}\nul{list-style:none;padding:0}li{padding:.5rem0;border-bottom:1px solid #1e2f48;display:flex;justify-content:space-between}\n</style></head><body>\n<div class=\"box\">\n<h1>Todo</h1>\n<form id=\"f\"><input id=\"i\" placeholder=\"Tugas baru\"/><button>Tambah</button></form>\n<ul id=\"l\"></ul>\n</div>\n<script>\nconst l=document.getElementById('l'),i=document.getElementById('i');\ndocument.getElementById('f').onsubmit=e=>{e.preventDefault();if(!i.value.trim())return;\nconst li=document.createElement('li');li.innerHTML=`<span>${i.value}</span>`;\nconst b=document.createElement('button');b.textContent='×';b.onclick=()=>li.remove();\nli.append(b);l.append(li);i.value='';};\n</script></body></html>\n```"
+}

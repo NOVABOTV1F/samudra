@@ -1,0 +1,8 @@
+{
+  "id": "otak-cara-tambah",
+  "title": "Tambah Jalur Otak",
+  "tags": ["meta", "brain"],
+  "keywords": ["tambah jalur", "tambah otak", "pathways", "compile brain", "npm run brain"],
+  "patterns": ["tambah\\s*(jalur|otak)", "npm\\s*run\\s*brain"],
+  "answer": "## Cara menambah Otak Samudra\n\n1. Buat file `src/lib/brain/pathways/namaku.json`\n2. Isi minimal:\n```json\n{\n  \"id\": \"namaku\",\n  \"keywords\": [\"kata1\", \"kata2\"],\n  \"answer\": \"Jawaban di sini. Pakai {{query}} untuk sisipkan pesan user.\"\n}\n```\n3. Jalankan `npm run brain` → menghasilkan `src/lib/brain/raw.json`\n4. Commit & deploy\n\nSemakin banyak jalur + keywords tepat, semakin sering otak lokal menjawab tanpa API key."
+}

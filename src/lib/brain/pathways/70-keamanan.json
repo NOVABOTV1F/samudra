@@ -1,0 +1,8 @@
+{
+  "id": "keamanan-web",
+  "title": "Keamanan Web",
+  "tags": ["knowledge", "security"],
+  "keywords": ["keamanan", "security", "xss", "sql injection", "api key aman"],
+  "patterns": ["keamanan\\s*web", "simpan\\s*api\\s*key"],
+  "answer": "## Keamanan web singkat\n\n1. **Jangan** taruh API key di frontend / repo publik\n2. Pakai **Environment Variables** di hosting (Runtime secrets)\n3. Validasi input user (hindari XSS & injection)\n4. HTTPS selalu on\n5. Least privilege — key hanya izin yang dibutuhkan\n\nOtak Samudra lokal **tidak** mengirim datamu ke model luar kecuali kamu set key cloud."
+}

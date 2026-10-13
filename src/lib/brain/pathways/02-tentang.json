@@ -1,0 +1,8 @@
+{
+  "id": "tentang",
+  "title": "Tentang",
+  "tags": ["meta"],
+  "keywords": ["tentang", "siapa kamu", "apa itu samudra", "zuzuxf", "otak"],
+  "patterns": ["siapa (kamu|kau)", "apa itu (samudra|zuzuxf)"],
+  "answer": "Aku **Otak Samudra** (ZUZUXF_AI) — asisten studio di web.\n\n- **Brankas**: jalur pengetahuan di GitHub (`src/lib/brain/pathways`)\n- **Raw**: digabung jadi `src/lib/brain/raw.json`\n- **Mode lokal**: jawab tanpa Gemini/Groq/xAI jika jalur cocok\n- **Mode cloud**: kalau API key ada, bisa pakai model eksternal\n\nOtak ini bisa terus ditambah jalurnya — makin banyak jalur, makin pinter."
+}

@@ -1,0 +1,8 @@
+{
+  "id": "motivasi",
+  "title": "Motivasi",
+  "tags": ["fun"],
+  "keywords": ["motivasi", "semangat", "quotes", "inspirasi", "capek"],
+  "patterns": ["kasih\\s*motivasi", "butuh\\s*semangat"],
+  "answer": "🔥 **Semangat!**\n\n> Progress kecil yang konsisten mengalahkan rencana besar yang tidak dijalankan.\n\nHari ini cukup: **satu langkah**. Otak Samudra siap bantu langkah teknisnya — ketik **bantuan** kalau bingung mulai dari mana."
+}

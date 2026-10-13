@@ -1,0 +1,8 @@
+{
+  "id": "css-flexbox",
+  "title": "CSS Flexbox",
+  "tags": ["code", "css"],
+  "keywords": ["flexbox", "css flex", "display flex", "justify content"],
+  "patterns": ["flexbox", "display\\s*:\\s*flex"],
+  "answer": "## CSS Flexbox cepat\n\n```css\n.container {\n  display: flex;\n  flex-direction: row; /* atau column */\n  justify-content: center; /* sumbu utama */\n  align-items: center; /* sumbu silang */\n  gap: 1rem;\n}\n.item { flex: 1; } /* bagi ruang */\n```\n\n**Ingat:** `justify-content` = sepanjang arah flex, `align-items` = tegak lurus arah flex."
+}

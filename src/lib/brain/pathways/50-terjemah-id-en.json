@@ -1,0 +1,8 @@
+{
+  "id": "terjemah-sederhana",
+  "title": "Terjemah",
+  "tags": ["lang"],
+  "keywords": ["terjemah", "translate", "bahasa inggris", "english"],
+  "patterns": ["terjemah(kan)?", "translate"],
+  "answer": "Mode lokal punya kamus terbatas. Untuk terjemahan bebas akurat, aktifkan model cloud (Gemini/Groq).\n\nFrasa umum:\n| ID | EN |\n|----|-----|\n| halo | hello |\n| terima kasih | thank you |\n| tolong | please |\n| berapa harganya | how much is it |\n| di mana | where |\n| saya tidak mengerti | I don't understand |\n\nPesanmu: *{{query}}*"
+}

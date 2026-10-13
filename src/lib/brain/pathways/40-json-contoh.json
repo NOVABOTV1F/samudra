@@ -1,0 +1,8 @@
+{
+  "id": "json-contoh",
+  "title": "JSON",
+  "tags": ["code"],
+  "keywords": ["json", "contoh json", "format json"],
+  "patterns": ["contoh\\s*json"],
+  "answer": "Contoh **JSON**:\n\n```json\n{\n  \"nama\": \"ZUZUXF_AI\",\n  \"versi\": 1,\n  \"fitur\": [\"chat\", \"html\", \"otak\"],\n  \"aktif\": true\n}\n```\n\nAturan: kunci dalam tanda kutip ganda, koma antar item, tanpa koma di item terakhir."
+}

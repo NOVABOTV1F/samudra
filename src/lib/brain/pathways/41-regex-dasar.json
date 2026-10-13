@@ -1,0 +1,8 @@
+{
+  "id": "regex-dasar",
+  "title": "Regex",
+  "tags": ["code"],
+  "keywords": ["regex", "regular expression", "pola teks"],
+  "patterns": ["\\bregex\\b", "regular\\s*expression"],
+  "answer": "## Regex dasar\n\n| Pola | Arti |\n|------|------|\n| `\\d` | digit |\n| `\\w` | huruf/angka/_ |\n| `.` | karakter apa saja |\n| `+` | satu atau lebih |\n| `*` | nol atau lebih |\n| `^` / `$` | awal / akhir |\n\nContoh email sederhana: `^[\\w.-]+@[\\w.-]+\\.\\w+$`"
+}

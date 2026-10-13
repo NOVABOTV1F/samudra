@@ -1,0 +1,8 @@
+{
+  "id": "format-rupiah",
+  "title": "Format Rupiah",
+  "tags": ["code", "js"],
+  "keywords": ["format rupiah", "rupiah", "uang", "currency", "idr"],
+  "patterns": ["format\\s*rupiah", "fungsi\\s*rupiah"],
+  "answer": "Fungsi **formatRupiah** siap pakai:\n\n```js\nfunction formatRupiah(angka) {\n  const n = Number(angka);\n  if (!Number.isFinite(n)) return \"Rp 0\";\n  return new Intl.NumberFormat(\"id-ID\", {\n    style: \"currency\",\n    currency: \"IDR\",\n    minimumFractionDigits: 0,\n  }).format(n);\n}\n\nconsole.log(formatRupiah(15000));\nconsole.log(formatRupiah(1250000));\nconsole.log(formatRupiah(0));\nconsole.log(formatRupiah(\"99000\"));\n```"
+}

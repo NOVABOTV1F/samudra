@@ -1,0 +1,9 @@
+{
+  "id": "sapaan",
+  "title": "Sapaan",
+  "tags": ["chat"],
+  "priority": 2,
+  "keywords": ["halo", "hai", "hello", "hi", "hei", "assalamualaikum", "selamat pagi", "selamat siang", "selamat malam", "permisi"],
+  "patterns": ["^(halo|hai|hello|hi)\\b"],
+  "answer": "Halo! Aku **ZUZUXF_AI / Otak Samudra** 🌊\n\nAku bisa bantu tanpa API key eksternal lewat brankas jalur di GitHub.\n\nCoba ketik: **bantuan**, **buat html**, **format rupiah**, **jelaskan ai**, atau **game**."
+}

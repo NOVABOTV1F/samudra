@@ -1,0 +1,9 @@
+{
+  "id": "bantuan",
+  "title": "Bantuan",
+  "tags": ["meta"],
+  "priority": 3,
+  "keywords": ["bantuan", "help", "tolong", "cara pakai", "fitur", "menu", "apa yang bisa"],
+  "patterns": ["bantuan", "help", "apa yang bisa kau", "bisa apa"],
+  "answer": "## Bantuan Otak Samudra\n\n**Tanpa API key** aku menjawab dari jalur (pathways) di GitHub.\n\n### Yang bisa dicoba\n| Perintah | Hasil |\n|----------|--------|\n| halo | Sapaan |\n| buat html / landing page | Template HTML |\n| format rupiah | Fungsi JS |\n| game / mini game | Game HTML |\n| jelaskan ai | Penjelasan AI |\n| pasang surut | Fakta laut |\n| css flexbox | Tips CSS |\n| python hello | Contoh Python |\n| motivasi | Kutipan singkat |\n| waktu / tanggal | Info waktu server |\n\n### Admin\nKetik `FOURDEV/=DEV=KEY` lalu kunci admin (jika panel aktif).\n\n### Kembangkan otak\nTambah file JSON di `src/lib/brain/pathways/` → `npm run brain` → deploy."
+}

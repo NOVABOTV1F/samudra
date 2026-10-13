@@ -1,0 +1,8 @@
+{
+  "id": "pasang-surut",
+  "title": "Pasang Surut",
+  "tags": ["knowledge", "laut"],
+  "keywords": ["pasang surut", "pasang", "surut", "bulan laut", "tide"],
+  "patterns": ["pasang\\s*surut"],
+  "answer": "## Pasang surut laut\n\n**Analogi:** Bumi dan air laut seperti mangkuk air yang ditarik gravitasi **Bulan** (dan sedikit Matahari). Air \"menggembung\" di sisi yang menghadap Bulan dan sisi berlawanan → **pasang**.\n\n### Ringkas\n- Gravitasi Bulan > pengaruh harian utama\n- Rotasi Bumi membuat 2 siklus pasang per hari di banyak lokasi\n- Matahari menambah (pasang purnama/mati)\n\n### 3 fakta yang sering salah\n1. Pasang hanya di pantai menghadap Bulan — sebenarnya ada dua gembungan\n2. Bulan saja yang berpengaruh — Matahari juga\n3. Pasang sama di seluruh dunia — bentuk pantai & laut lokal sangat memengaruhi"
+}
