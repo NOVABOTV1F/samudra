@@ -2,6 +2,9 @@ export type ChatRole = "user" | "assistant";
 
 export type StudioMode = "chat" | "image";
 
+/** V1 = Gemini, V2 = Groq */
+export type ImageVersion = "1" | "2";
+
 export type ChatMessage = {
   id: string;
   role: ChatRole;
@@ -71,13 +74,13 @@ export const BLANK_HTML = `<!doctype html>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Samudra</title>
   <style>
-    :root { color-scheme: dark; }
+    :root { color-scheme: light; }
     html, body {
       margin: 0;
       min-height: 100%;
       font: 16px/1.5 Figtree, system-ui, sans-serif;
-      background: #061018;
-      color: #e6f2f4;
+      background: #f4f9ff;
+      color: #0f2744;
     }
     main {
       min-height: 100dvh;
@@ -86,7 +89,7 @@ export const BLANK_HTML = `<!doctype html>
       padding: 24px;
     }
     h1 { font-weight: 500; letter-spacing: -0.03em; }
-    p { color: #8aa8b3; max-width: 28ch; }
+    p { color: #5a7a9a; max-width: 28ch; }
   </style>
 </head>
 <body>

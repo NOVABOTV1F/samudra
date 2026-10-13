@@ -1,9 +1,9 @@
-import { ImageIcon, Send, Square, Type } from "lucide-react";
-import { useEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
+import { Send, Square } from "lucide-react";
+import { useEffect, useRef, type KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Hint } from "@/components/ui/tooltip";
-import type { StudioMode } from "@/lib/studio/types";
+import type { ImageVersion } from "@/lib/studio/types";
 import { cn } from "@/lib/utils";
 
 const MAX = 24000;
@@ -11,16 +11,16 @@ const MAX = 24000;
 export function Composer({
   value,
   onChange,
-  mode,
-  onMode,
+  aiVersion,
+  onAiVersion,
   busy,
   onSend,
   onStop,
 }: {
   value: string;
   onChange: (value: string) => void;
-  mode: StudioMode;
-  onMode: (mode: StudioMode) => void;
+  aiVersion: ImageVersion;
+  onAiVersion: (v: ImageVersion) => void;
   busy: boolean;
   onSend: () => void;
   onStop: () => void;
@@ -46,6 +46,9 @@ export function Composer({
 
   return (
     <div className="mx-auto w-full max-w-3xl px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 md:px-4">
+      <p className="mb-1.5 px-1 text-[11px] text-mist">
+        V1 = Gemini · V2 = Groq · otak lokal jika tanpa key
+      </p>
       <div className="rounded-2xl bg-tide/90 p-2 shadow-[var(--shadow-border)]">
         <Textarea
           ref={ref}
@@ -54,27 +57,38 @@ export function Composer({
           maxLength={MAX}
           onChange={(event) => onChange(event.target.value)}
           onKeyDown={onKeyDown}
-          placeholder={
-            mode === "image"
-              ? "Deskripsikan gambar yang ingin dibuat…"
-              : "Tanya otak lokal, tempel HTML, atau minta halaman…"
-          }
-          aria-label={mode === "image" ? "Deskripsi gambar" : "Pesan"}
+          placeholder="Tanya apa saja… (gambar dideteksi otomatis dari teks)"
+          aria-label="Pesan"
           className="min-h-12 max-h-52 px-3 py-2.5"
         />
-        <div className="flex items-center gap-1 px-1 pb-0.5">
+        <div className="flex flex-wrap items-center gap-1 px-1 pb-0.5">
           <div className="flex rounded-xl bg-depth p-1">
-            <ModeChip active={mode === "chat"} onClick={() => onMode("chat")} icon={<Type className="size-3.5" />} label="Teks" />
-            <ModeChip
-              active={mode === "image"}
-              onClick={() => onMode("image")}
-              icon={<ImageIcon className="size-3.5" />}
-              label="Gambar"
-            />
+            <button
+              type="button"
+              onClick={() => onAiVersion("1")}
+              className={cn(
+                "inline-flex h-9 items-center rounded-lg px-3 text-xs font-medium",
+                aiVersion === "1" ? "bg-accent/25 text-foam ring-1 ring-accent/40" : "text-mist",
+              )}
+              aria-pressed={aiVersion === "1"}
+            >
+              V1
+            </button>
+            <button
+              type="button"
+              onClick={() => onAiVersion("2")}
+              className={cn(
+                "inline-flex h-9 items-center rounded-lg px-3 text-xs font-medium",
+                aiVersion === "2" ? "bg-accent/25 text-foam ring-1 ring-accent/40" : "text-mist",
+              )}
+              aria-pressed={aiVersion === "2"}
+            >
+              V2
+            </button>
           </div>
-          <span className="ml-auto pr-2 font-mono text-[11px] tabular-nums text-mist">
-            {value.length}/{MAX}
-          </span>
+
+          <span className="ml-auto" />
+
           {busy ? (
             <Hint label="Hentikan">
               <Button variant="quiet" size="icon" aria-label="Hentikan" onClick={onStop}>
@@ -91,32 +105,5 @@ export function Composer({
         </div>
       </div>
     </div>
-  );
-}
-
-function ModeChip({
-  active,
-  onClick,
-  icon,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: ReactNode;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-colors duration-150",
-        active ? "bg-tide text-foam" : "text-mist hover:text-ink",
-      )}
-      aria-pressed={active}
-    >
-      {icon}
-      {label}
-    </button>
   );
 }

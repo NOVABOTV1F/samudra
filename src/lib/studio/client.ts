@@ -4,11 +4,21 @@ export async function streamChat(options: {
   messages: ChatTurn[];
   signal: AbortSignal;
   onDelta: (chunk: string) => void;
+  provider?: "brain" | "gemini" | "groq" | "xai";
+  geminiKey?: string;
+  groqKey?: string;
+  systemPrompt?: string;
 }) {
   const response = await fetch("/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ messages: options.messages }),
+    body: JSON.stringify({
+      messages: options.messages,
+      provider: options.provider,
+      geminiKey: options.geminiKey,
+      groqKey: options.groqKey,
+      systemPrompt: options.systemPrompt,
+    }),
     signal: options.signal,
   });
 
@@ -50,26 +60,8 @@ export async function streamChat(options: {
           options.onDelta(token);
         }
       } catch {
-        /* ignore malformed keepalives */
+        /* ignore */
       }
     }
   }
-}
-
-export async function generateImage(prompt: string, signal: AbortSignal) {
-  const response = await fetch("/api/image", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt }),
-    signal,
-  });
-  const payload = (await response.json()) as {
-    ok?: boolean;
-    error?: string;
-    image?: string;
-  };
-  if (!response.ok || !payload.ok || !payload.image) {
-    throw new Error(payload.error ?? `Gambar gagal dibuat (${response.status})`);
-  }
-  return payload.image;
 }
