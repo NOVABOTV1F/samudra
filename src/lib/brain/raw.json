@@ -1,1 +1,155 @@
-{"name":"samudra-otak","note":"Disusun dari src/lib/brain/pathways. Jangan sunting berkas ini.","pathways":[{"id":"jalur.akses","lane":"web","title":"Halaman yang bisa dipakai semua orang","keywords":["aksesibilitas","a11y","keyboard","label","kontras","pembaca layar"],"answer":"Halaman yang rapi untuk mata belum tentu bisa dipakai.\n\n- Tombol harus tombol, tautan harus tautan.\n- Setiap input punya label.\n- Kontras teks dan latar jangan sewarna.\n- Yang bisa diklik juga bisa dicapai dengan keyboard.\n- Jangan menyampaikan arti hanya dengan warna.\n\nUkuran sentuh yang nyaman sekitar 44 piksel."},{"id":"jalur.css","lane":"web","title":"CSS mengatur tampilan, bukan isi","keywords":["css","warna","flex","grid","margin","padding","kelas","style"],"answer":"CSS tidak menambah kalimat. Ia mengatur kotak yang sudah ada di HTML.\n\nUrutan yang berguna: `display` dulu (aliran, flex, atau grid), lalu jarak (`gap`, `padding`, `margin`), baru warna dan huruf.\n\nKelas dipakai ulang. Id untuk satu elemen. Jangan mengulang gaya yang sama di sepuluh tag. Satu kelas, banyak pemakai.\n\nTempel blok `<style>` kalau ingin pemilihnya disebut satu per satu."},{"id":"jalur.data","lane":"kerja","title":"Data yang disimpan di peramban","keywords":["localstorage","simpan","riwayat","data","privasi"],"answer":"Riwayat percakapan Samudra tersimpan di perambanmu (`localStorage`), di perangkat ini saja. Membersihkan data situs akan menghapusnya.\n\nJangan menempel kunci atau sandi ke dalam percakapan. Otak tidak membutuhkannya, dan teks itu ikut tersimpan di perangkat."},{"id":"jalur.debug","lane":"web","title":"Kalau halaman diam atau berantakan","keywords":["error","bug","tidak jalan","rusak","debug","konsol","undefined"],"answer":"Urutan yang hemat waktu:\n\n1. Buka konsol peramban. Baca baris pertama yang merah, bukan yang paling bawah.\n2. Kalau tertulis `is not defined`, nama itu belum dibuat atau salah eja.\n3. Kalau tombol diam, cek pemilihnya. `querySelector` yang tidak ketemu mengembalikan `null`, lalu `.onclick` meledak.\n4. Kalau letak berantakan, cek elemen yang lupa ditutup.\n\nTempel pesan errornya. Kutip persis, jangan diceritakan ulang."},{"id":"jalur.deploy","lane":"kerja","title":"Situs ini bisa di Vercel atau Netlify","keywords":["vercel","netlify","deploy","hosting","publish"],"answer":"Repo yang sama bisa dibangun di dua tempat.\n\n- Vercel memakai preset bawaan. Nama proyek huruf kecil, misalnya `samudra-laut`. Kalau tertulis not authorized, izinkan aplikasi Vercel membaca repo `samudra`.\n- Netlify membaca `netlify.toml`. Perintahnya `npm run build`, folder terbit `dist`.\n\nChat otak tidak membutuhkan kunci model. Riwayat tetap di peramban pengunjung, bukan di hosting."},{"id":"jalur.file","lane":"studio","title":"Jawaban panjang menjadi berkas","keywords":["unduh","download","file","salin","copy","8000"],"answer":"Di studio ini, jawaban otak yang lebih panjang dari 8000 karakter diunduh otomatis sebagai berkas markdown. Isi yang sama tetap tersimpan di percakapan.\n\nKode berpagar `html` bisa dijalankan di panel sebelah, disalin, atau diunduh.\n\nGambar lokal berformat SVG, jadi unduhannya gambar vektor, bukan foto."},{"id":"jalur.formulir","lane":"web","title":"Form mengumpulkan isian","keywords":["form","formulir","input","tombol kirim","validasi"],"answer":"Form adalah wadah. `input`, `textarea`, dan `select` adalah isian. `button type=\"submit\"` mengirim, `type=\"button\"` hanya menjalankan skrip.\n\nBeri setiap isian `name` dan `label`. Tanpa label, orang dan pembaca layar tidak tahu kotak itu untuk apa.\n\nCek di browser dulu: kosong atau tidak, format email, angka minimum. Jangan percaya cek di browser sebagai satu-satunya penjaga kalau datanya nanti masuk server."},{"id":"jalur.gambar","lane":"studio","title":"Gambar tanpa model foto","keywords":["gambar","ilustrasi","svg","foto","lukisan"],"answer":"Mode gambar menggambar SVG di perangkatmu: langit, bulan, dan dua lapis gelombang, plus judul dari kalimatmu.\n\nIni bukan foto dan bukan model gambar berbayar. Tidak ada API key yang dikirim.\n\nUntuk adegan yang lebih kaya, minta halaman HTML. Kanvas di dalam berkas itu bisa bergerak, dan tetap satu file."},{"id":"jalur.game","lane":"web","title":"Game kecil satu berkas","keywords":["game","permainan","mutiara","skor","kanvas"],"answer":"Minta `buat game mutiara`. Yang tersusun: kanvas, mutiara jatuh, sentuhan menambah skor, semua di satu HTML.\n\nTidak ada mesin game dan tidak ada akun. Kalau ingin aturan lain, sebutkan benda yang dikumpulkan dan apa yang mengurangi skor."},{"id":"jalur.git","lane":"kerja","title":"Git menyimpan riwayat, GitHub menyimpannya di jaringan","keywords":["git","github","commit","push","repo","branch"],"answer":"Git di komputer menyimpan perubahan sebagai commit. GitHub adalah salinan repo itu yang bisa dibuka orang lain.\n\nAlur pendek: ubah berkas, `commit` dengan kalimat yang menyebut apa yang berubah, lalu `push` ke cabang `main`.\n\nJangan memasukkan `node_modules` atau kunci API ke dalam repo. Kunci yang sudah terlanjur terunggah harus dianggap bocor dan diganti."},{"id":"jalur.halaman","lane":"web","title":"Meminta halaman yang bisa dijalankan","keywords":["halaman","situs","landing","satu file","widget","kartu"],"answer":"Minta dengan kata buat atau buatkan, plus halaman, situs, atau widget.\n\nOtak menyusun satu dokumen HTML: gaya di dalam, tanpa pustaka luar. Panel artefak bisa menjalankannya, menyalin, atau mengunduh.\n\nSebut judulnya. Contoh: `buatkan halaman menu kopi pantai`."},{"id":"jalur.hitung","lane":"alat","title":"Hitungan sederhana","keywords":["hitung","berapa","kali","bagi","persen","tambah"],"answer":"Tulis ekspresinya langsung, misalnya `hitung (120 + 30) * 2` atau `berapa 15% dari 200` dengan bentuk `0.15 * 200`.\n\nOtak hanya menghitung angka dan operator `+ - * / %` serta tanda kurung. Tidak ada pangkat dan tidak ada nama variabel, supaya tidak ada kode lain yang ikut jalan."},{"id":"jalur.javascript","lane":"web","title":"JavaScript adalah perilaku setelah halaman hidup","keywords":["javascript","js","fungsi","function","event","dom","kode"],"answer":"JavaScript berjalan setelah HTML terbaca. Pola yang paling sering:\n\n1. Pilih elemen (`querySelector`).\n2. Dengarkan kejadian (`click`, `input`, `pointerdown`).\n3. Ubah teks, kelas, atau hitungan.\n\nFungsi adalah pekerjaan bernama supaya tidak disalin berkali-kali. `const` untuk nilai yang tidak diganti, `let` untuk nilai yang bergerak seperti skor.\n\nTempel skripnya. Otak akan menyebut nama fungsinya dan tidak mengeksekusinya."},{"id":"jalur.json","lane":"web","title":"JSON adalah bentuk data, bukan program","keywords":["json","objek","array","api response"],"answer":"JSON menyimpan data: objek `{ \"nama\": \"laut\" }` dan daftar `[1, 2, 3]`.\n\nAturan yang sering membuatnya gagal dibaca: koma di belakang unsur terakhir, kutip satu bukan kutip dua, atau komentar `//` yang tidak diizinkan.\n\nJSON tidak menjalankan fungsi. Kalau sebuah balasan API berisi kode, itu tetap teks sampai programmu dengan sengaja menjalankannya. Jangan lakukan itu pada teks dari orang lain."},{"id":"jalur.keamanan","lane":"web","title":"Kunci dan isi dari orang lain","keywords":["keamanan","api key","rahasia","xss","token","password","sandi"],"answer":"Kunci API adalah sandi. Jangan menaruhnya di kode yang terlihat pengunjung, di GitHub, atau di chat.\n\nKalau halaman menampilkan teks dari pengunjung, jangan menyisipkannya sebagai HTML mentah. Itu cara skrip orang lain ikut berjalan.\n\nOtak Samudra sengaja tidak memanggil model berbayar. Yang ia baca adalah jalur di situs ini dan teks yang kamu tempel."},{"id":"jalur.komponen","lane":"web","title":"Cara membaca komponen sebuah halaman","keywords":["komponen","elemen","tag","struktur html","dom"],"answer":"Komponen di halaman polos adalah tag yang punya tugas.\n\n- `header` kepala, `nav` menu, `main` isi, `footer` kaki.\n- `section` satu bab, `article` satu kesatuan, `div` hanya kotak atur letak.\n- `button` bertindak, `a` pindah halaman, `form` mengumpulkan isian.\n- `script` perilaku, `style` atau `class` tampilan.\n\nTempel sumbernya dan minta bedah. Otak akan menghitung tag, id, kelas, tombol, tautan, dan nama fungsi tanpa menjalankan skrip itu."},{"id":"jalur.menulis","lane":"bahasa","title":"Merapikan tulisan","keywords":["tulis","karangan","paragraf","ringkas","email","caption"],"answer":"Satu paragraf, satu gagasan. Kalimat pertama bilang intinya. Sisanya bukti atau contoh.\n\nBuang kata yang tidak mengubah arti: sangat, sebenarnya, pada dasarnya.\n\nUntuk permintaan, sebut tiga hal: untuk siapa, tujuannya, dan batas panjangnya. Contoh: \"caption 2 kalimat untuk warung kopi, nada tenang, tanpa kata promo\"."},{"id":"jalur.pasang","lane":"laut","title":"Pasang surut","keywords":["pasang","surut","laut","bulan","ombak","arus"],"answer":"Air laut naik dan turun terutama karena tarikan bulan, dan matahari menambah atau mengurangi tinggi itu.\n\nAnalogi: bulan menarik selimut air. Di sisi yang menghadap bulan selimut menumpuk (pasang). Di sisi yang jauh, bumi sedikit tertarik menjauh dari air, jadi air di sana juga relatif menumpuk.\n\nTiga hal yang sering keliru:\n- Ombak pantai bukan pasang surut. Ombak dibuat angin.\n- Tidak semua pantai punya dua pasang sama tinggi setiap hari.\n- Bulan purnama membuat pasang lebih tinggi (pasang purnama), bukan ombak yang otomatis besar."},{"id":"jalur.react","lane":"web","title":"Komponen dalam React, secara gagasan","keywords":["react","komponen react","props","state","jsx"],"answer":"Dalam React, komponen adalah fungsi yang mengembalikan tampilan. `props` adalah masukan dari luar. `state` adalah ingatan yang, kalau berubah, tampilan digambar ulang.\n\nJSX mirip HTML tetapi itu JavaScript. `class` ditulis `className`.\n\nSamudra sendiri memakai React. Otak yang sedang kamu pakai tidak memanggil server model. Ia memilih jalur, atau menjalankan bedah sumber, pembuat halaman, dan hitungan di peramban."},{"id":"jalur.rencana","lane":"kerja","title":"Memecah pekerjaan","keywords":["rencana","langkah","proyek","jadwal","mulai dari mana","todo"],"answer":"Pecah sampai sebuah langkah bisa selesai dalam satu duduk.\n\n1. Sebut hasil yang kelihatan, bukan kegiatan. \"Halaman menu bisa dibuka\" lebih jelas daripada \"mengerjakan web\".\n2. Urutkan yang menghalangi yang lain. Tanpa isi, desain tidak bisa dinilai.\n3. Berhenti di tiga langkah berikutnya. Daftar dua puluh butir biasanya tidak dikerjakan.\n\nKalau kamu sebut proyeknya, aku susunkan tiga langkah pertama dari jalur ini, bukan janji waktu yang tidak aku tahu."},{"id":"jalur.rupiah","lane":"alat","title":"Angka menjadi rupiah","keywords":["rupiah","formatrupiah","mata uang","idr","harga"],"answer":"Pakai pemformat bawaan, jangan susun titik sendiri.\n\n```js\nfunction formatRupiah(angka) {\n  return new Intl.NumberFormat(\"id-ID\", {\n    style: \"currency\",\n    currency: \"IDR\",\n    maximumFractionDigits: 0,\n  }).format(angka);\n}\nconsole.log(formatRupiah(1500000));\nconsole.log(formatRupiah(0));\nconsole.log(formatRupiah(99));\nconsole.log(formatRupiah(25000));\n```\n\n`1500000` tampil sebagai Rp1.500.000."},{"id":"jalur.sambutan","lane":"inti","title":"Menyapa dan menjelaskan siapa yang menjawab","keywords":["halo","hai","hello","apa kabar","siapa kamu","kamu siapa","samudra"],"answer":"Halo. Aku otak lokal Samudra. Jawaban datang dari jalur yang tertanam di situs ini, bukan dari API Gemini, Groq, atau layanan lain.\n\nAku bisa membedah HTML/JS/CSS yang kamu tempel, menyusun halaman atau game satu berkas, menghitung, dan menjawab dari peta jalur. Ketik `peta otak` untuk melihat semuanya."},{"id":"jalur.sql","lane":"kerja","title":"Membaca tabel tanpa mengarang isinya","keywords":["sql","database","tabel","select","query"],"answer":"Tabel punya baris dan kolom. `SELECT kolom FROM tabel WHERE syarat` membaca. `INSERT` menambah, `UPDATE` mengubah, `DELETE` menghapus.\n\nJangan menghapus tanpa `WHERE` yang sudah kamu cek dengan `SELECT` yang sama.\n\nAku tidak terhubung ke databasenya, jadi aku tidak bisa melihat isi tabelmu sampai kamu tempel hasil atau skemanya."},{"id":"jalur.sumber","lane":"web","title":"Mengapa URL tidak diambil mentah","keywords":["url","tautan","ambil isi","scrape","sumber web","view source"],"answer":"Menempel tautan saja tidak membawa isinya kemari. Situs lain menolak dibaca dari peramban orang, dan server yang diam-diam mengambil URL sembarangan mudah disalahgunakan.\n\nSalin sumbernya: di komputer, lihat source atau salin potongan elemen. Tempel di sini bersama permintaan `bedah komponen ini`.\n\nYang aku kembalikan: tag apa saja, berapa kali, id, kelas, tombol, tautan, input, pemilih CSS, dan nama fungsi."},{"id":"jalur.warna","lane":"laut","title":"Palet lautan studio ini","keywords":["palet","warna laut","abyss","seafoam","tema"],"answer":"Studio ini memakai sedikit warna supaya isi yang berbicara.\n\n- Dasar `#061018`\n- Kartu `#123246` yang diredam\n- Aksen `#6fb8b0`\n- Busa `#d7ecea`\n- Tinta `#e6f2f4`\n- Kabut untuk teks sekunder\n\nPakai aksen untuk satu hal yang diklik, bukan untuk semua judul."}]}
+{
+  "name": "samudra-otak",
+  "version": 1,
+  "note": "Compiled pathways. Re-run npm run brain after editing pathways.",
+  "count": 18,
+  "pathways": [
+    {
+      "id": "sapaan",
+      "title": "Sapaan",
+      "tags": ["chat"],
+      "priority": 2,
+      "keywords": ["halo", "hai", "hello", "hi", "hei", "assalamualaikum", "selamat pagi", "selamat siang", "selamat malam", "permisi"],
+      "patterns": ["^(halo|hai|hello|hi)\\b"],
+      "answer": "Halo! Aku **ZUZUXF_AI / Otak Samudra** 🌊\n\nAku bisa bantu tanpa API key eksternal lewat brankas jalur di GitHub.\n\nCoba ketik: **bantuan**, **buat html**, **format rupiah**, **jelaskan ai**, atau **game**."
+    },
+    {
+      "id": "bantuan",
+      "title": "Bantuan",
+      "tags": ["meta"],
+      "priority": 3,
+      "keywords": ["bantuan", "help", "tolong", "cara pakai", "fitur", "menu", "apa yang bisa"],
+      "patterns": ["bantuan", "help", "apa yang bisa kau", "bisa apa"],
+      "answer": "## Bantuan Otak Samudra\n\n**Tanpa API key** aku menjawab dari jalur (pathways) di GitHub.\n\n### Yang bisa dicoba\n| Perintah | Hasil |\n|----------|--------|\n| halo | Sapaan |\n| buat html / landing page | Template HTML |\n| format rupiah | Fungsi JS |\n| game / mini game | Game HTML |\n| jelaskan ai | Penjelasan AI |\n| pasang surut | Fakta laut |\n| css flexbox | Tips CSS |\n| python hello | Contoh Python |\n| motivasi | Kutipan singkat |\n| todo | Aplikasi todo |\n\n### Kembangkan otak\nTambah file JSON di `src/lib/brain/pathways/` → `npm run brain` → deploy."
+    },
+    {
+      "id": "tentang",
+      "title": "Tentang",
+      "tags": ["meta"],
+      "keywords": ["tentang", "siapa kamu", "apa itu samudra", "zuzuxf", "otak"],
+      "patterns": ["siapa (kamu|kau)", "apa itu (samudra|zuzuxf)"],
+      "answer": "Aku **Otak Samudra** (ZUZUXF_AI) — asisten studio di web.\n\n- **Brankas**: jalur di GitHub (`src/lib/brain/pathways`)\n- **Raw**: `src/lib/brain/raw.json`\n- **Mode lokal**: jawab tanpa Gemini/Groq/xAI jika jalur cocok\n\nTambah jalur = otak makin luas."
+    },
+    {
+      "id": "html-landing",
+      "title": "Landing HTML",
+      "tags": ["code", "html"],
+      "priority": 2,
+      "keywords": ["landing page", "buat html", "halaman html", "website", "buatkan halaman"],
+      "patterns": ["buat(kan)? (halaman |landing )?html", "landing\\s*page"],
+      "answer": "Template **landing page** soft blue — tekan Run di studio. Ketik **buat html** untuk memicu jalur ini. (Isi lengkap ada di pathways/10-html-landing.json)"
+    },
+    {
+      "id": "format-rupiah",
+      "title": "Format Rupiah",
+      "tags": ["code", "js"],
+      "keywords": ["format rupiah", "rupiah", "uang", "currency", "idr"],
+      "patterns": ["format\\s*rupiah"],
+      "answer": "Fungsi **formatRupiah**:\n\n```js\nfunction formatRupiah(angka) {\n  const n = Number(angka);\n  if (!Number.isFinite(n)) return \"Rp 0\";\n  return new Intl.NumberFormat(\"id-ID\", { style: \"currency\", currency: \"IDR\", minimumFractionDigits: 0 }).format(n);\n}\nconsole.log(formatRupiah(15000));\nconsole.log(formatRupiah(1250000));\n```"
+    },
+    {
+      "id": "mini-game",
+      "title": "Mini Game",
+      "tags": ["code", "game"],
+      "keywords": ["game", "mini game", "permainan", "mutiara"],
+      "patterns": ["mini\\s*game", "buat(kan)?\\s*game"],
+      "answer": "Ketik **game** — jalur lengkap mini game HTML ada di `pathways/12-mini-game.json` (bintang + keyboard/sentuh). Deploy ulang setelah brain compile untuk jawaban penuh."
+    },
+    {
+      "id": "jelaskan-ai",
+      "title": "Jelaskan AI",
+      "tags": ["knowledge"],
+      "keywords": ["jelaskan ai", "apa itu ai", "kecerdasan buatan", "cara kerja ai", "llm"],
+      "patterns": ["jelaskan\\s*(ai|kecerdasan)", "apa\\s*itu\\s*ai"],
+      "answer": "## AI itu apa?\n\n**Analogi:** LLM seperti perpustakaan yang belajar *pola* kata berikutnya — bukan berpikir seperti manusia.\n\n1. Teks → token\n2. Prediksi token berikutnya\n3. Jawaban disusun bertahap\n\n**Miskonsepsi:** AI selalu benar; AI paham seperti manusia; AI = satu otak saja.\n\nOtak Samudra lokal = jalur tetap di GitHub, bukan LLM penuh."
+    },
+    {
+      "id": "pasang-surut",
+      "title": "Pasang Surut",
+      "tags": ["knowledge"],
+      "keywords": ["pasang surut", "pasang", "surut", "tide"],
+      "patterns": ["pasang\\s*surut"],
+      "answer": "Pasang surut didominasi gravitasi **Bulan** (dan Matahari). Air menggembung di dua sisi Bumi → siklus pasang. Bentuk pantai membuat tinggi pasang berbeda di tiap lokasi."
+    },
+    {
+      "id": "css-flexbox",
+      "title": "CSS Flexbox",
+      "tags": ["code", "css"],
+      "keywords": ["flexbox", "css flex", "display flex"],
+      "patterns": ["flexbox"],
+      "answer": "```css\n.container { display:flex; justify-content:center; align-items:center; gap:1rem; }\n.item { flex:1; }\n```\n`justify-content` = sumbu utama, `align-items` = sumbu silang."
+    },
+    {
+      "id": "python-hello",
+      "title": "Python Hello",
+      "tags": ["code", "python"],
+      "keywords": ["python", "hello world", "belajar python"],
+      "patterns": ["python\\s*(hello|dasar|pemula)"],
+      "answer": "```python\nprint(\"Halo dari Otak Samudra!\")\nnama = input(\"Namamu: \")\nprint(f\"Hai, {nama}!\")\n```"
+    },
+    {
+      "id": "motivasi",
+      "title": "Motivasi",
+      "tags": ["fun"],
+      "keywords": ["motivasi", "semangat", "quotes", "inspirasi"],
+      "patterns": ["kasih\\s*motivasi"],
+      "answer": "🔥 Progress kecil yang konsisten mengalahkan rencana besar yang tidak dijalankan. Satu langkah hari ini cukup."
+    },
+    {
+      "id": "cuaca-umum",
+      "title": "Cuaca",
+      "tags": ["info"],
+      "keywords": ["cuaca", "hujan", "panas", "weather"],
+      "patterns": ["cuaca"],
+      "answer": "Otak lokal tidak punya cuaca live. Cek BMKG / app cuaca. Bisa ditambah jalur + API nanti."
+    },
+    {
+      "id": "json-contoh",
+      "title": "JSON",
+      "tags": ["code"],
+      "keywords": ["json", "contoh json"],
+      "patterns": ["contoh\\s*json"],
+      "answer": "```json\n{ \"nama\": \"ZUZUXF_AI\", \"versi\": 1, \"aktif\": true }\n```"
+    },
+    {
+      "id": "regex-dasar",
+      "title": "Regex",
+      "tags": ["code"],
+      "keywords": ["regex", "regular expression"],
+      "patterns": ["\\bregex\\b"],
+      "answer": "`\\d` digit, `\\w` word, `.` any, `+` satu+, `*` nol+, `^` awal, `$` akhir."
+    },
+    {
+      "id": "terjemah-sederhana",
+      "title": "Terjemah",
+      "tags": ["lang"],
+      "keywords": ["terjemah", "translate", "english"],
+      "patterns": ["terjemah(kan)?", "translate"],
+      "answer": "Kamus terbatas (mode lokal). halo=hello, terima kasih=thank you, tolong=please, di mana=where.\n\nPesan: {{query}}"
+    },
+    {
+      "id": "todo-html",
+      "title": "Todo App",
+      "tags": ["code", "html"],
+      "keywords": ["todo", "daftar tugas"],
+      "patterns": ["buat(kan)?\\s*(todo|daftar tugas)"],
+      "answer": "Ketik **todo** — template app todo HTML ada di pathways/60-todo-html.json (compile brain untuk isi penuh)."
+    },
+    {
+      "id": "keamanan-web",
+      "title": "Keamanan Web",
+      "tags": ["knowledge"],
+      "keywords": ["keamanan", "security", "api key aman", "xss"],
+      "patterns": ["keamanan\\s*web"],
+      "answer": "Jangan taruh API key di frontend/repo publik. Pakai env/secrets hosting. Validasi input. HTTPS on."
+    },
+    {
+      "id": "otak-cara-tambah",
+      "title": "Tambah Jalur",
+      "tags": ["meta"],
+      "keywords": ["tambah jalur", "tambah otak", "npm run brain", "pathways"],
+      "patterns": ["tambah\\s*(jalur|otak)"],
+      "answer": "1. Buat `src/lib/brain/pathways/x.json` dengan id, keywords, answer\n2. `npm run brain`\n3. Commit & deploy\nPakai `{{query}}` untuk sisipkan pesan user."
+    }
+  ]
+}
