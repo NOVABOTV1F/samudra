@@ -2,10 +2,12 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { Menu, PanelRight, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Toaster } from "sonner";
+import { AdminPanel } from "@/components/studio/admin-panel";
 import { ArtifactDock } from "@/components/studio/artifact-dock";
 import { Composer } from "@/components/studio/composer";
 import { MessageCard } from "@/components/studio/message-card";
 import { OceanBackdrop } from "@/components/studio/ocean-backdrop";
+import { SettingsButton } from "@/components/studio/settings-panel";
 import { Sidebar } from "@/components/studio/sidebar";
 import { WaveMark } from "@/components/studio/wave-mark";
 import { Button } from "@/components/ui/button";
@@ -13,6 +15,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { think, spillToFile } from "@/lib/brain/think";
 import { downloadText } from "@/lib/studio/files";
 import { extractArtifacts } from "@/lib/studio/parse";
+import { ADMIN_TRIGGER } from "@/lib/studio/settings";
 import { selectActiveChat, useStudioStore } from "@/lib/studio/store";
 import { STARTERS, BLANK_HTML, type ActiveArtifact, type StudioMode } from "@/lib/studio/types";
 import { cn } from "@/lib/utils";
@@ -38,11 +41,19 @@ export function StudioApp() {
   const [mode, setMode] = useState<StudioMode>("chat");
   const [navOpen, setNavOpen] = useState(false);
   const [dockOpen, setDockOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
+  const [announce, setAnnounce] = useState("");
   const abortRef = useRef<AbortController | null>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     hydrate();
+    try {
+      setAnnounce(localStorage.getItem("samudra-announce") ?? "");
+    } catch {
+      /* */
+    }
   }, [hydrate]);
 
   useEffect(() => {
@@ -68,6 +79,13 @@ export function StudioApp() {
   async function send(text = draft, sendMode = mode) {
     const prompt = text.trim();
     if (!prompt || busy) return;
+
+    // Admin trigger
+    if (prompt === ADMIN_TRIGGER || prompt.toUpperCase() === "/SAMUDRA.PANEL") {
+      setDraft("");
+      setAdminOpen(true);
+      return;
+    }
 
     const conversationId = ensureChat();
     setDraft("");
@@ -180,6 +198,7 @@ export function StudioApp() {
                 Otak lokal
               </span>
               <div className="ml-auto flex items-center gap-1">
+                <SettingsButton open={settingsOpen} onOpenChange={setSettingsOpen} />
                 {artifact ? (
                   <Button
                     size="icon"
@@ -192,6 +211,12 @@ export function StudioApp() {
                 ) : null}
               </div>
             </header>
+
+            {announce ? (
+              <div className="mx-3 mb-1 rounded-xl bg-lagoon px-3 py-2 text-xs text-foam md:mx-4">
+                {announce}
+              </div>
+            ) : null}
 
             <div ref={scrollerRef} className="min-h-0 flex-1 overflow-y-auto">
               {empty ? (
@@ -256,7 +281,6 @@ export function StudioApp() {
             <Dialog.Content
               className={cn(
                 "fixed inset-y-0 left-0 z-50 w-[min(18.5rem,88vw)] outline-none md:hidden",
-                "data-[state=open]:animate-in data-[state=closed]:animate-out",
               )}
               aria-describedby={undefined}
             >
@@ -311,12 +335,14 @@ export function StudioApp() {
           </Dialog.Portal>
         </Dialog.Root>
 
+        <AdminPanel open={adminOpen} onOpenChange={setAdminOpen} />
+
         <Toaster
-          theme="dark"
+          theme="light"
           position="top-center"
           toastOptions={{
             classNames: {
-              toast: "bg-lagoon text-ink border-border shadow-[var(--shadow-border)]",
+              toast: "bg-tide text-ink border-border shadow-[var(--shadow-border)]",
             },
           }}
         />
@@ -332,12 +358,16 @@ function EmptyState({
   onPick: (prompt: string) => void;
   onScratch: () => void;
 }) {
+  let welcome = "Tempat kerja lautan. Otaknya ada di situs ini, tanpa API key lain.";
+  try {
+    welcome = localStorage.getItem("samudra-welcome") || welcome;
+  } catch {
+    /* */
+  }
   return (
     <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col justify-center px-4 py-10">
       <p className="font-display text-4xl leading-none tracking-tight text-foam md:text-5xl">Samudra</p>
-      <p className="mt-3 max-w-md text-sm leading-relaxed text-mist md:text-base">
-        Tempat kerja lautan. Otaknya ada di situs ini, tanpa API key lain. Tempel HTML untuk dibedah, atau minta halaman yang bisa dijalankan.
-      </p>
+      <p className="mt-3 max-w-md text-sm leading-relaxed text-mist md:text-base">{welcome}</p>
       <ul className="mt-8 grid gap-2 sm:grid-cols-2">
         {STARTERS.map((item) => (
           <li key={item.title}>
