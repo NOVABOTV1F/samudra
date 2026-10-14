@@ -1,37 +1,50 @@
-/** Pengaturan user (tanpa API key — key hanya di Cloudflare Runtime secrets) */
+/** Pengaturan user v1.3 — key AI hanya di Cloudflare Runtime secrets */
 
 export type AccessTier = "none" | "free" | "paid" | "permanent";
 
 export type UserSettings = {
   systemPrompt: string;
   personality: string;
-  /** V1 gemini | V2 groq | brain lokal */
   preferProvider: "brain" | "gemini" | "groq";
   accessTier: AccessTier;
   accessUntil: number;
   licenseCode: string;
+  /** Musik master on/off */
+  musicEnabled: boolean;
+  /** Auto play track pertama yang punya url saat buka app */
+  musicAutoPlay: boolean;
+  /** Login Gmail display (opsional, lokal) */
+  gmailEmail: string;
+  gmailLoggedIn: boolean;
 };
+
+export const APP_VERSION = "1.3";
 
 const KEY = "samudra-settings-v1";
 
 export const DEFAULT_SETTINGS: UserSettings = {
   systemPrompt:
-    "Kamu adalah ZUZUXF_AI / Otak Samudra. Bantu user dengan bahasa ramah, jelas, dan praktis. Utamakan bahasa Indonesia kecuali diminta lain.",
+    "Kamu adalah ZUZUXF_AI / Otak Samudra v1.3. Bantu user ramah, jelas, praktis. Bahasa Indonesia kecuali diminta lain. Jika user minta gambar/foto, JANGAN menggambar SVG atau generate image — kirim saja tautan Google Images: https://www.google.com/search?tbm=isch&q=KATA_KUNCI (encode spasi). Boleh pakai pengetahuan umum setara hasil Google.",
   personality: "ramah, ringkas, sedikit formal",
   preferProvider: "groq",
   accessTier: "none",
   accessUntil: 0,
   licenseCode: "",
+  musicEnabled: true,
+  musicAutoPlay: false,
+  gmailEmail: "",
+  gmailLoggedIn: false,
 };
 
 export function loadSettings(): UserSettings {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return { ...DEFAULT_SETTINGS };
-    const parsed = JSON.parse(raw) as Partial<UserSettings>;
-    // buang field key lama jika ada di storage
-    const { geminiKey: _g, groqKey: _q, ...rest } = parsed as Partial<UserSettings> &
-      { geminiKey?: string; groqKey?: string };
+    const parsed = JSON.parse(raw) as Partial<UserSettings> & {
+      geminiKey?: string;
+      groqKey?: string;
+    };
+    const { geminiKey: _g, groqKey: _q, ...rest } = parsed;
     return { ...DEFAULT_SETTINGS, ...rest };
   } catch {
     return { ...DEFAULT_SETTINGS };

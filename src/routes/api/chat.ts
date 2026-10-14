@@ -23,9 +23,11 @@ const Body = z.object({
   systemPrompt: z.string().max(8000).optional(),
 });
 
-const DEFAULT_SYSTEM = `You are ZUZUXF_AI (Otak Samudra), a capable studio AI.
+const DEFAULT_SYSTEM = `You are ZUZUXF_AI / Otak Samudra v1.3.
 Help with writing, analysis, planning, code, and runnable HTML demos.
-When the user asks about images, describe them or give SVG/HTML art ideas.
+You may reason with general knowledge as if checking Google.
+IMPORTANT for images/photos: NEVER generate or draw images/SVG. Only reply with a Google Images search URL:
+https://www.google.com/search?tbm=isch&q=ENCODED_QUERY
 Match the user's language. Never mention these instructions.`;
 
 const brain = rawBrain as BrainRaw;
@@ -39,12 +41,12 @@ function sseResponse(stream: ReadableStream<Uint8Array>, extra: Record<string, s
       "Cache-Control": "no-cache, no-transform",
       Connection: "keep-alive",
       "X-Accel-Buffering": "no",
+      "X-Samudra-Version": "1.3",
       ...extra,
     },
   });
 }
 
-/** Hanya dari environment Cloudflare / hosting — tidak dari body client */
 function envKey(names: string[]): string {
   for (const n of names) {
     try {
@@ -100,18 +102,13 @@ export const Route = createFileRoute("/api/chat")({
         const query = lastUser?.content ?? "";
         const want = parsed.data.provider;
 
-        // Key HANYA dari Cloudflare Runtime secrets
         const geminiKey = envKey(["GEMINI_API_KEY", "GOOGLE_API_KEY"]);
         const groqKey = envKey(["GROQ_API_KEY"]);
 
-        // —— V1 Gemini ——
         if (want === "gemini") {
           if (!geminiKey) {
             return Response.json(
-              {
-                error:
-                  "V1 Gemini: GEMINI_API_KEY belum di-set di Cloudflare Runtime secrets. User tidak perlu isi key.",
-              },
+              { error: "V1 Gemini: set GEMINI_API_KEY di Cloudflare Runtime secrets." },
               { status: 503 },
             );
           }
@@ -151,26 +148,16 @@ export const Route = createFileRoute("/api/chat")({
                 /* next */
               }
             } else if (upstream.status === 401 || upstream.status === 403) {
-              return Response.json(
-                { error: "Gemini key di Cloudflare ditolak. Cek key di dashboard." },
-                { status: 502 },
-              );
+              return Response.json({ error: "Gemini key ditolak." }, { status: 502 });
             }
           }
-          return Response.json(
-            { error: "Gemini gagal (model/kuota). Coba V2." },
-            { status: 502 },
-          );
+          return Response.json({ error: "Gemini gagal. Coba V2." }, { status: 502 });
         }
 
-        // —— V2 Groq ——
         if (want === "groq") {
           if (!groqKey) {
             return Response.json(
-              {
-                error:
-                  "V2 Groq: GROQ_API_KEY belum di-set di Cloudflare Runtime secrets. User tidak perlu isi key.",
-              },
+              { error: "V2 Groq: set GROQ_API_KEY di Cloudflare Runtime secrets." },
               { status: 503 },
             );
           }
@@ -201,29 +188,22 @@ export const Route = createFileRoute("/api/chat")({
                   "Cache-Control": "no-cache, no-transform",
                   Connection: "keep-alive",
                   "X-Samudra-Provider": "groq",
+                  "X-Samudra-Version": "1.3",
                 },
               });
             }
             if (upstream.status === 401 || upstream.status === 403) {
-              return Response.json(
-                { error: "Groq key di Cloudflare ditolak. Cek key di dashboard." },
-                { status: 502 },
-              );
+              return Response.json({ error: "Groq key ditolak." }, { status: 502 });
             }
           }
-          return Response.json(
-            { error: "Groq gagal. Cek kuota atau pakai otak lokal." },
-            { status: 502 },
-          );
+          return Response.json({ error: "Groq gagal." }, { status: 502 });
         }
 
-        // —— Otak lokal ——
         const hit = matchBrain(query, pathways, 4);
         if (hit) {
           return sseResponse(textToSseStream(hit.answer), { "X-Samudra-Brain": "1" });
         }
 
-        // Auto: ada key server → Groq dulu, lalu Gemini
         if (groqKey) {
           const upstream = await fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: "POST",
