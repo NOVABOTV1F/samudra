@@ -3,7 +3,7 @@
   "note": "Hanya MP3. Isi url raw GitHub/direct. Slot kosong = belum ada file. Slot 01 sudah terisi contoh.",
   "tracks": [
     {"id": "m01", "title": "music", "artist": "TEH HIJAU", "url": "https://raw.githubusercontent.com/NOVABOTV1F/MUSICPLAYLIST/main/Tulus_-_Teh_Hijau_(mp3.pm).mp3"},
-    {"id": "m02", "title": "music", "artist": "ASTAGA BERCANDA", "url": "https://raw.githubusercontent.com/NOVABOTV1F/MUSICPLAYLIST/main/Akbar Chalay, Mingse - Astaga Bercanda (Visualizer).mp3"},
+    {"id": "m02", "title": "music", "artist": "ASTAGA BERCANDA", "url": "https://raw.githubusercontent.com/NOVABOTV1F/MUSICPLAYLIST/main/ASTAGA BERCANDA.mp3"},
     {"id": "m03", "title": "Slot 03", "artist": "—", "url": ""},
     {"id": "m04", "title": "Slot 04", "artist": "—", "url": ""},
     {"id": "m05", "title": "Slot 05", "artist": "—", "url": ""},
