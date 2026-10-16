@@ -4,17 +4,18 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   APP_VERSION,
+  applyTheme,
   hasActiveAccess,
   loadSettings,
   redeemLicense,
   saveSettings,
+  type ThemeMode,
   type UserSettings,
 } from "@/lib/studio/settings";
 import { cn } from "@/lib/utils";
 
 type Track = { id: string; title: string; artist: string; url: string };
 
-/** Hanya MP3 (raw URL). MP4 ditolak. */
 function isMp3Url(url: string) {
   const u = url.trim().toLowerCase();
   if (!u) return false;
@@ -47,7 +48,7 @@ export function SettingsPanel({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
-  const [tab, setTab] = useState<"prompt" | "keys" | "music" | "akun">("prompt");
+  const [tab, setTab] = useState<"prompt" | "tampilan" | "keys" | "music" | "akun">("prompt");
   const [s, setS] = useState<UserSettings>(loadSettings);
   const [code, setCode] = useState("");
   const [msg, setMsg] = useState("");
@@ -87,14 +88,17 @@ export function SettingsPanel({
     return list;
   }, [tracks, q]);
 
-  const emptySlots = useMemo(
-    () => tracks.filter((t) => !t.url?.trim()).length,
-    [tracks],
-  );
+  const emptySlots = useMemo(() => tracks.filter((t) => !t.url?.trim()).length, [tracks]);
 
   function persist(next: UserSettings) {
     setS(next);
     saveSettings(next);
+  }
+
+  function setTheme(theme: ThemeMode) {
+    const next = { ...s, theme };
+    persist(next);
+    applyTheme(theme);
   }
 
   function applyCode() {
@@ -124,7 +128,7 @@ export function SettingsPanel({
       .play()
       .then(() => {
         setActiveId(t.id);
-        setMsg(""); // tidak tampil bar — hanya play di background
+        setMsg("");
       })
       .catch(() => setMsg("Gagal putar. Cek URL raw / CORS."));
     a.onended = () => setActiveId(null);
@@ -150,7 +154,6 @@ export function SettingsPanel({
   }
 
   function loginGmail() {
-    // Login display saja (v1.3) — buka Google Account; email opsional disimpan lokal
     window.open("https://accounts.google.com/", "_blank", "noopener,noreferrer");
     const email = window.prompt("Opsional: ketik email Gmail untuk ditampilkan di app") ?? "";
     if (email.trim()) {
@@ -186,6 +189,7 @@ export function SettingsPanel({
             {(
               [
                 ["prompt", "Prompt"],
+                ["tampilan", "Tema"],
                 ["keys", "Akses"],
                 ["music", "Music"],
                 ["akun", "Akun"],
@@ -223,14 +227,42 @@ export function SettingsPanel({
               </div>
             ) : null}
 
+            {tab === "tampilan" ? (
+              <div className="space-y-3">
+                <p className="text-xs text-mist">Tema Ocean Intelligence</p>
+                <div className="flex flex-wrap gap-2">
+                  {(
+                    [
+                      ["light", "Terang"],
+                      ["dark", "Gelap"],
+                      ["system", "Sistem"],
+                    ] as const
+                  ).map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setTheme(id)}
+                      className={cn(
+                        "rounded-full px-4 py-2 text-xs font-medium",
+                        s.theme === id ? "bg-accent text-white" : "bg-depth text-mist",
+                      )}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[11px] text-mist">
+                  Gelap: biru laut + cyan. Terang: putih + biru. Animasi ringan; hormati reduced-motion.
+                </p>
+              </div>
+            ) : null}
+
             {tab === "keys" ? (
               <div className="space-y-3">
                 <div className="rounded-xl bg-lagoon/80 px-3 py-2 text-xs leading-relaxed text-mist">
                   <strong className="text-foam">API key tidak diisi user.</strong>
                   <br />
-                  Key di Cloudflare Runtime secrets: GEMINI_API_KEY (V1), GROQ_API_KEY (V2).
-                  <br />
-                  AI boleh mengarah ke Google Images (URL saja, bukan generate gambar).
+                  Cloudflare Runtime secrets: GEMINI_API_KEY (V1), GROQ_API_KEY (V2).
                 </div>
                 <p className="text-xs text-mist">
                   Lisensi: <strong className="text-foam">{accessLabel}</strong>
@@ -280,8 +312,7 @@ export function SettingsPanel({
                   </button>
                 </div>
                 <p className="text-[11px] text-mist">
-                  Hanya <strong>MP3</strong> raw. Pilih lagu → play di background (tanpa bar di layar).
-                  Slot kosong: {emptySlots}/42 — isi di public/music/playlist.json
+                  Hanya MP3 raw. Play background tanpa bar. Slot kosong: {emptySlots}
                 </p>
                 <div className="relative">
                   <Search className="pointer-events-none absolute top-2.5 left-3 size-4 text-mist" />
@@ -294,7 +325,7 @@ export function SettingsPanel({
                 </div>
                 <ul className="max-h-52 space-y-1 overflow-y-auto">
                   {filtered.length === 0 ? (
-                    <li className="px-2 py-3 text-xs text-mist">Belum ada MP3 terisi. Isi url raw di playlist.</li>
+                    <li className="px-2 py-3 text-xs text-mist">Belum ada MP3 terisi.</li>
                   ) : (
                     filtered.map((t) => (
                       <li key={t.id}>
@@ -329,7 +360,7 @@ export function SettingsPanel({
             {tab === "akun" ? (
               <div className="space-y-3">
                 <p className="text-xs text-mist">
-                  Login Gmail opsional (v1.3) — hanya penanda di perangkat ini, bukan OAuth penuh.
+                  Login Gmail opsional — penanda lokal, bukan OAuth penuh.
                 </p>
                 {s.gmailLoggedIn ? (
                   <div className="rounded-xl bg-lagoon/80 px-3 py-3 text-sm text-foam">
@@ -343,7 +374,6 @@ export function SettingsPanel({
                     Login Gmail
                   </Button>
                 )}
-                <p className="text-[11px] text-mist">Tanpa login tetap bisa chat normal.</p>
               </div>
             ) : null}
           </div>
