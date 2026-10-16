@@ -1,7 +1,7 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { Menu, PanelRight, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Toaster } from "sonner";
+import { Toaster, toast } from "sonner";
 import { AdminPanel } from "@/components/studio/admin-panel";
 import { ArtifactDock } from "@/components/studio/artifact-dock";
 import { Composer } from "@/components/studio/composer";
@@ -16,7 +16,13 @@ import { think, spillToFile } from "@/lib/brain/think";
 import { streamChat } from "@/lib/studio/client";
 import { downloadText } from "@/lib/studio/files";
 import { extractArtifacts } from "@/lib/studio/parse";
-import { ADMIN_TRIGGER, loadSettings } from "@/lib/studio/settings";
+import {
+  ADMIN_TRIGGER,
+  APP_VERSION,
+  applyTheme,
+  loadSettings,
+  QUICK_ACTIONS,
+} from "@/lib/studio/settings";
 import { selectActiveChat, useStudioStore } from "@/lib/studio/store";
 import {
   STARTERS,
@@ -38,6 +44,7 @@ export function StudioApp() {
   const newChat = useStudioStore((state) => state.newChat);
   const setActive = useStudioStore((state) => state.setActive);
   const deleteChat = useStudioStore((state) => state.deleteChat);
+  const renameChat = useStudioStore((state) => state.renameChat);
   const addMessage = useStudioStore((state) => state.addMessage);
   const patchMessage = useStudioStore((state) => state.patchMessage);
   const setStreaming = useStudioStore((state) => state.setStreaming);
@@ -61,6 +68,7 @@ export function StudioApp() {
     try {
       setAnnounce(localStorage.getItem("samudra-announce") ?? "");
       const s = loadSettings();
+      applyTheme(s.theme);
       if (s.preferProvider === "gemini") setAiVersion("1");
       if (s.preferProvider === "groq") setAiVersion("2");
     } catch {
@@ -121,7 +129,6 @@ export function StudioApp() {
       }
 
       const settings = loadSettings();
-      // V1/V2 → server pakai key Cloudflare; user tidak kirim key
       const provider = aiVersion === "1" ? "gemini" : "groq";
 
       const history =
@@ -144,7 +151,7 @@ export function StudioApp() {
       let assembled = "";
       try {
         await streamChat({
-          messages: history,
+          messages: history.slice(-16),
           signal: controller.signal,
           provider,
           systemPrompt,
@@ -154,7 +161,6 @@ export function StudioApp() {
           },
         });
       } catch (cloudErr) {
-        // Fallback otak lokal jika key Cloudflare belum set / error
         const reply = think(prompt, "chat");
         const spilled = spillToFile(reply.text);
         if (spilled) downloadText(spilled.filename, spilled.full, "text/markdown;charset=utf-8");
@@ -163,7 +169,7 @@ export function StudioApp() {
           content:
             assembled +
             (cloudErr instanceof Error
-              ? `\n\n_Catatan: cloud (${provider}) belum siap — ${cloudErr.message}_`
+              ? `\n\n_Catatan: cloud (${provider}) — ${cloudErr.message}_`
               : ""),
           pathway: reply.pathway,
         });
@@ -186,10 +192,24 @@ export function StudioApp() {
       if (controller.signal.aborted) return;
       const message = error instanceof Error ? error.message : "Terjadi kesalahan.";
       patchMessage(conversationId, assistantId, { error: message });
+      toast.error(message);
     } finally {
       if (abortRef.current === controller) abortRef.current = null;
       setStreaming(null);
     }
+  }
+
+  function retryLast() {
+    if (!chat || busy) return;
+    const msgs = chat.messages;
+    let lastUser: string | null = null;
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      if (msgs[i].role === "user") {
+        lastUser = msgs[i].content;
+        break;
+      }
+    }
+    if (lastUser) void send(lastUser);
   }
 
   function handleRun(next: ActiveArtifact) {
@@ -198,6 +218,8 @@ export function StudioApp() {
   }
 
   const mobileArtifact = useMemo(() => artifact, [artifact]);
+  const lastAssistantId =
+    chat?.messages.filter((m) => m.role === "assistant").at(-1)?.id ?? null;
 
   return (
     <TooltipProvider>
@@ -217,6 +239,7 @@ export function StudioApp() {
               setActive(id);
             }}
             onDelete={deleteChat}
+            onRename={renameChat}
             className="w-full"
           />
         </aside>
@@ -224,21 +247,33 @@ export function StudioApp() {
         <div className="relative z-10 flex min-w-0 flex-1">
           <main className="flex min-w-0 flex-1 flex-col">
             <header className="flex h-14 items-center gap-2 px-2 md:px-4">
-              <Button size="icon" className="md:hidden" aria-label="Buka percakapan" onClick={() => setNavOpen(true)}>
+              <Button
+                size="icon"
+                className="md:hidden"
+                aria-label="Buka percakapan"
+                onClick={() => setNavOpen(true)}
+              >
                 <Menu />
               </Button>
               <div className="flex min-w-0 items-center gap-2 md:hidden">
                 <WaveMark className="size-6" />
                 <span className="font-display text-base tracking-tight">Samudra</span>
               </div>
-              <p className="hidden truncate text-sm text-mist md:block">{chat?.title ?? "Studio lautan"}</p>
+              <p className="hidden truncate text-sm text-mist md:block">
+                {chat?.title ?? "Ocean Intelligence"}
+              </p>
               <span className="hidden rounded-full bg-tide px-2.5 py-1 font-mono text-[10px] uppercase tracking-wide text-mist md:inline">
-                {aiVersion === "1" ? "V1 Gemini" : "V2 Groq"}
+                {aiVersion === "1" ? "V1 Gemini" : "V2 Groq"} · v{APP_VERSION}
               </span>
               <div className="ml-auto flex items-center gap-1">
                 <SettingsButton open={settingsOpen} onOpenChange={setSettingsOpen} />
                 {artifact ? (
-                  <Button size="icon" className="md:hidden" aria-label="Buka ruang kerja" onClick={() => setDockOpen(true)}>
+                  <Button
+                    size="icon"
+                    className="md:hidden"
+                    aria-label="Buka ruang kerja"
+                    onClick={() => setDockOpen(true)}
+                  >
                     <PanelRight />
                   </Button>
                 ) : null}
@@ -246,7 +281,9 @@ export function StudioApp() {
             </header>
 
             {announce ? (
-              <div className="mx-3 mb-1 rounded-xl bg-lagoon px-3 py-2 text-xs text-foam md:mx-4">{announce}</div>
+              <div className="mx-3 mb-1 rounded-xl bg-lagoon px-3 py-2 text-xs text-foam md:mx-4">
+                {announce}
+              </div>
             ) : null}
 
             <div ref={scrollerRef} className="min-h-0 flex-1 overflow-y-auto">
@@ -274,6 +311,9 @@ export function StudioApp() {
                       conversationId={chat.id}
                       streaming={streamingId === message.id}
                       onRun={handleRun}
+                      onRetry={
+                        message.id === lastAssistantId && !busy ? () => retryLast() : undefined
+                      }
                     />
                   ))}
                 </div>
@@ -293,7 +333,12 @@ export function StudioApp() {
 
           {artifact ? (
             <div className="hidden w-[min(28rem,42vw)] shrink-0 border-l border-border lg:block">
-              <ArtifactDock artifact={artifact} onClose={closeArtifact} onCode={updateArtifactCode} className="h-full" />
+              <ArtifactDock
+                artifact={artifact}
+                onClose={closeArtifact}
+                onCode={updateArtifactCode}
+                className="h-full"
+              />
             </div>
           ) : null}
         </div>
@@ -301,7 +346,10 @@ export function StudioApp() {
         <Dialog.Root open={navOpen} onOpenChange={setNavOpen}>
           <Dialog.Portal>
             <Dialog.Overlay className="fixed inset-0 z-40 bg-abyss/70 md:hidden" />
-            <Dialog.Content className="fixed inset-y-0 left-0 z-50 w-[min(18.5rem,88vw)] outline-none md:hidden" aria-describedby={undefined}>
+            <Dialog.Content
+              className="fixed inset-y-0 left-0 z-50 w-[min(18.5rem,88vw)] outline-none md:hidden"
+              aria-describedby={undefined}
+            >
               <Dialog.Title className="sr-only">Percakapan</Dialog.Title>
               <Sidebar
                 conversations={conversations}
@@ -317,6 +365,7 @@ export function StudioApp() {
                   setNavOpen(false);
                 }}
                 onDelete={deleteChat}
+                onRename={renameChat}
                 className="h-full border-r border-border"
               />
             </Dialog.Content>
@@ -326,7 +375,10 @@ export function StudioApp() {
         <Dialog.Root open={Boolean(mobileArtifact) && dockOpen} onOpenChange={setDockOpen}>
           <Dialog.Portal>
             <Dialog.Overlay className="fixed inset-0 z-40 bg-abyss/70 lg:hidden" />
-            <Dialog.Content className="fixed inset-x-0 bottom-0 z-50 h-[min(88dvh,40rem)] outline-none lg:hidden" aria-describedby={undefined}>
+            <Dialog.Content
+              className="fixed inset-x-0 bottom-0 z-50 h-[min(88dvh,40rem)] outline-none lg:hidden"
+              aria-describedby={undefined}
+            >
               <Dialog.Title className="sr-only">Ruang kerja</Dialog.Title>
               {mobileArtifact ? (
                 <div className="relative h-full rounded-t-2xl border-t border-border bg-depth">
@@ -353,7 +405,7 @@ export function StudioApp() {
         <AdminPanel open={adminOpen} onOpenChange={setAdminOpen} />
 
         <Toaster
-          theme="light"
+          theme="system"
           position="top-center"
           toastOptions={{
             classNames: { toast: "bg-tide text-ink border-border shadow-[var(--shadow-border)]" },
@@ -371,7 +423,10 @@ function EmptyState({
   onPick: (prompt: string) => void;
   onScratch: () => void;
 }) {
-  let welcome = "Langsung chat. Key AI ada di server (Cloudflare), bukan di HP user.";
+  let welcome =
+    "Ocean Intelligence v" +
+    APP_VERSION +
+    " — chat, coding studio, musik. Key AI di server Cloudflare.";
   try {
     welcome = localStorage.getItem("samudra-welcome") || welcome;
   } catch {
@@ -379,15 +434,19 @@ function EmptyState({
   }
   return (
     <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col justify-center px-4 py-10">
-      <p className="font-display text-4xl leading-none tracking-tight text-foam md:text-5xl">Samudra</p>
+      <p className="font-display text-4xl leading-none tracking-tight text-foam md:text-5xl">
+        Samudra
+      </p>
       <p className="mt-3 max-w-md text-sm leading-relaxed text-mist md:text-base">{welcome}</p>
-      <ul className="mt-8 grid gap-2 sm:grid-cols-2">
-        {STARTERS.map((item) => (
-          <li key={item.title}>
+
+      <p className="mt-8 text-xs font-medium tracking-wide text-mist uppercase">Quick Actions</p>
+      <ul className="mt-2 grid gap-2 sm:grid-cols-2">
+        {QUICK_ACTIONS.map((item) => (
+          <li key={item.id}>
             <button
               type="button"
               onClick={() => onPick(item.prompt)}
-              className="h-full w-full rounded-2xl bg-tide/70 px-4 py-3.5 text-left shadow-[var(--shadow-border)] transition-[transform,box-shadow] duration-150 hover:shadow-[var(--shadow-border-hover)] active:scale-[0.98]"
+              className="h-full w-full rounded-2xl bg-tide/80 px-4 py-3.5 text-left shadow-[var(--shadow-border)] transition-[transform,box-shadow] duration-150 hover:shadow-[var(--shadow-border-hover)] active:scale-[0.98]"
             >
               <span className="block text-sm font-medium text-foam">{item.title}</span>
               <span className="mt-1 block text-xs leading-relaxed text-mist">{item.blurb}</span>
@@ -395,8 +454,28 @@ function EmptyState({
           </li>
         ))}
       </ul>
-      <button type="button" onClick={onScratch} className="mt-4 self-start rounded-xl px-3 py-2 text-sm text-mist hover:text-foam">
-        Atau buka ruang kerja kosong
+
+      <p className="mt-8 text-xs font-medium tracking-wide text-mist uppercase">Contoh</p>
+      <ul className="mt-2 grid gap-2 sm:grid-cols-2">
+        {STARTERS.map((item) => (
+          <li key={item.title}>
+            <button
+              type="button"
+              onClick={() => onPick(item.prompt)}
+              className="h-full w-full rounded-2xl bg-lagoon/50 px-4 py-3.5 text-left transition-colors hover:bg-lagoon"
+            >
+              <span className="block text-sm font-medium text-foam">{item.title}</span>
+              <span className="mt-1 block text-xs leading-relaxed text-mist">{item.blurb}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      <button
+        type="button"
+        onClick={onScratch}
+        className="mt-4 self-start rounded-xl px-3 py-2 text-sm text-mist hover:text-foam"
+      >
+        Buka Coding Studio kosong
       </button>
     </div>
   );

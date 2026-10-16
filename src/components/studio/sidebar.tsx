@@ -1,9 +1,11 @@
-import { Download, Plus, Trash2 } from "lucide-react";
+import { Download, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Hint } from "@/components/ui/tooltip";
 import { WaveMark } from "@/components/studio/wave-mark";
 import { conversationToMarkdown, downloadText } from "@/lib/studio/files";
+import { APP_VERSION } from "@/lib/studio/settings";
 import type { Conversation } from "@/lib/studio/types";
 import { cn } from "@/lib/utils";
 
@@ -13,6 +15,7 @@ export function Sidebar({
   onNew,
   onSelect,
   onDelete,
+  onRename,
   className,
 }: {
   conversations: Conversation[];
@@ -20,15 +23,28 @@ export function Sidebar({
   onNew: () => void;
   onSelect: (id: string) => void;
   onDelete: (id: string) => void;
+  onRename?: (id: string, title: string) => void;
   className?: string;
 }) {
+  const [q, setQ] = useState("");
+
+  const filtered = useMemo(() => {
+    const n = q.trim().toLowerCase();
+    if (!n) return conversations;
+    return conversations.filter(
+      (c) =>
+        c.title.toLowerCase().includes(n) ||
+        c.messages.some((m) => m.content.toLowerCase().includes(n)),
+    );
+  }, [conversations, q]);
+
   return (
     <div className={cn("flex h-full flex-col bg-depth/80", className)}>
-      <div className="flex items-center gap-2 px-4 pt-5 pb-4">
+      <div className="flex items-center gap-2 px-4 pt-5 pb-3">
         <WaveMark className="size-8" />
         <div className="min-w-0">
           <p className="font-display text-lg leading-tight tracking-tight text-foam">Samudra</p>
-          <p className="text-[11px] text-mist">Studio AI</p>
+          <p className="text-[11px] text-mist">Ocean Intelligence · v{APP_VERSION}</p>
         </div>
       </div>
 
@@ -39,18 +55,31 @@ export function Sidebar({
         </Button>
       </div>
 
-      <nav className="mt-4 min-h-0 flex-1 overflow-y-auto px-2 pb-3" aria-label="Riwayat percakapan">
-        {conversations.length === 0 ? (
-          <p className="px-3 py-6 text-sm text-mist">Belum ada riwayat. Mulai dari ombak pertama.</p>
+      <div className="relative mt-3 px-3">
+        <Search className="pointer-events-none absolute top-2.5 left-5 size-4 text-mist" />
+        <input
+          className="w-full rounded-xl border border-border bg-tide py-2 pr-3 pl-9 text-sm text-ink outline-none focus:ring-2 focus:ring-accent/40"
+          placeholder="Cari riwayat…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          aria-label="Cari percakapan"
+        />
+      </div>
+
+      <nav className="mt-3 min-h-0 flex-1 overflow-y-auto px-2 pb-3" aria-label="Riwayat percakapan">
+        {filtered.length === 0 ? (
+          <p className="px-3 py-6 text-sm text-mist">
+            {conversations.length === 0 ? "Belum ada riwayat." : "Tidak ada hasil pencarian."}
+          </p>
         ) : (
           <ul className="space-y-1">
-            {conversations.map((chat) => {
+            {filtered.map((chat) => {
               const active = chat.id === activeId;
               return (
                 <li key={chat.id}>
                   <div
                     className={cn(
-                      "group flex items-center gap-1 rounded-xl px-1",
+                      "group flex items-center gap-0.5 rounded-xl px-1",
                       active ? "bg-tide" : "hover:bg-tide/60",
                     )}
                   >
@@ -61,6 +90,21 @@ export function Sidebar({
                     >
                       <span className="block truncate">{chat.title}</span>
                     </button>
+                    {onRename ? (
+                      <Hint label="Ganti nama">
+                        <Button
+                          size="iconSm"
+                          className="opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                          aria-label="Ganti nama"
+                          onClick={() => {
+                            const next = window.prompt("Nama percakapan", chat.title);
+                            if (next != null) onRename(chat.id, next);
+                          }}
+                        >
+                          <Pencil className="size-3.5" />
+                        </Button>
+                      </Hint>
+                    ) : null}
                     <Hint label="Unduh markdown">
                       <Button
                         size="iconSm"
@@ -84,7 +128,9 @@ export function Sidebar({
                         variant="danger"
                         className="opacity-100 md:opacity-0 md:group-hover:opacity-100"
                         aria-label="Hapus percakapan"
-                        onClick={() => onDelete(chat.id)}
+                        onClick={() => {
+                          if (window.confirm("Hapus percakapan ini?")) onDelete(chat.id);
+                        }}
                       >
                         <Trash2 />
                       </Button>
@@ -98,16 +144,18 @@ export function Sidebar({
       </nav>
 
       <p className="px-4 pb-[max(1rem,env(safe-area-inset-bottom))] text-[11px] leading-relaxed text-mist">
-        Model Grok. Riwayat tersimpan di perangkat ini.
+        Riwayat tersimpan di perangkat ini (localStorage), bukan cloud.
       </p>
     </div>
   );
 }
 
 function slug(value: string) {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "")
-    .slice(0, 40) || "samudra";
+  return (
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "")
+      .slice(0, 40) || "samudra"
+  );
 }

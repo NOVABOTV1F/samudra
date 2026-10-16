@@ -1,7 +1,9 @@
 import { useMemo } from "react";
+import { RefreshCw } from "lucide-react";
 import { WaveMark } from "@/components/studio/wave-mark";
 import { MarkdownView } from "@/components/studio/markdown-view";
 import { CopyButton, DownloadButton, RunButton } from "@/components/studio/icon-actions";
+import { Button } from "@/components/ui/button";
 import { downloadDataUrl } from "@/lib/studio/files";
 import { extractArtifacts, splitFences } from "@/lib/studio/parse";
 import type { ActiveArtifact, ChatMessage } from "@/lib/studio/types";
@@ -12,11 +14,13 @@ export function MessageCard({
   conversationId,
   streaming,
   onRun,
+  onRetry,
 }: {
   message: ChatMessage;
   conversationId: string;
   streaming?: boolean;
   onRun: (artifact: ActiveArtifact) => void;
+  onRetry?: () => void;
 }) {
   const parts = useMemo(() => splitFences(message.content), [message.content]);
   const artifacts = useMemo(
@@ -44,7 +48,7 @@ export function MessageCard({
 
       <div className={cn("min-w-0 max-w-[min(100%,44rem)] flex-1", isUser && "flex flex-col items-end")}>
         {isUser ? (
-          <div className="rounded-2xl rounded-tr-md bg-tide px-4 py-3 text-[0.9375rem] leading-relaxed text-ink">
+          <div className="rounded-2xl rounded-tr-md bg-tide px-4 py-3 text-[0.9375rem] leading-relaxed text-ink shadow-[var(--shadow-border)]">
             {message.content}
           </div>
         ) : (
@@ -131,9 +135,14 @@ export function MessageCard({
           </div>
         )}
 
-        {!isUser && !streaming && message.content && !message.error ? (
-          <div className="mt-2 flex justify-end">
-            <CopyButton text={message.content} label="Salin jawaban" />
+        {!isUser && !streaming && (message.content || message.error) ? (
+          <div className="mt-2 flex justify-end gap-1">
+            {onRetry ? (
+              <Button size="iconSm" aria-label="Coba ulang" onClick={onRetry}>
+                <RefreshCw className="size-3.5" />
+              </Button>
+            ) : null}
+            {message.content && !message.error ? <CopyButton text={message.content} label="Salin jawaban" /> : null}
           </div>
         ) : null}
       </div>
