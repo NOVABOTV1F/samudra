@@ -1,21 +1,21 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* v1.4 Ocean Intelligence — light default */
 @theme {
-  /* Putih + biru muda */
-  --color-abyss: #f4f9ff;
-  --color-depth: #e8f2fc;
+  --color-abyss: #f0f7ff;
+  --color-depth: #e2eef9;
   --color-tide: #ffffff;
-  --color-lagoon: #dceaf8;
-  --color-ink: #0f2744;
-  --color-foam: #0b1e36;
-  --color-mist: #5a7a9a;
-  --color-accent: #4da3ff;
-  --color-accent-dim: #2b7fd4;
-  --color-danger: #e05a5a;
-  --color-ok: #2f9e6b;
-  --color-border: color-mix(in oklab, #0f2744 10%, transparent);
-  --color-border-strong: color-mix(in oklab, #0f2744 18%, transparent);
+  --color-lagoon: #d4e8f7;
+  --color-ink: #0a2540;
+  --color-foam: #062038;
+  --color-mist: #4a6f8f;
+  --color-accent: #0ea5e9;
+  --color-accent-dim: #0284c7;
+  --color-ok: #059669;
+  --color-danger: #dc2626;
+  --color-border: color-mix(in oklab, #0a2540 12%, transparent);
+  --color-border-strong: color-mix(in oklab, #0a2540 20%, transparent);
 
   --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Fraunces", "Times New Roman", ui-serif, Georgia, serif;
@@ -27,8 +27,27 @@
   --radius-xl: 24px;
   --radius-2xl: 28px;
 
-  --shadow-border: 0 0 0 1px color-mix(in oklab, #0f2744 8%, transparent), 0 8px 24px color-mix(in oklab, #4da3ff 8%, transparent);
-  --shadow-border-hover: 0 0 0 1px color-mix(in oklab, #4da3ff 28%, transparent), 0 10px 28px color-mix(in oklab, #4da3ff 12%, transparent);
+  --shadow-border: 0 0 0 1px color-mix(in oklab, #0a2540 8%, transparent), 0 8px 24px color-mix(in oklab, #0ea5e9 10%, transparent);
+  --shadow-border-hover: 0 0 0 1px color-mix(in oklab, #0ea5e9 30%, transparent), 0 10px 28px color-mix(in oklab, #0ea5e9 14%, transparent);
+}
+
+/* Dark ocean */
+html[data-theme="dark"] {
+  --color-abyss: #061018;
+  --color-depth: #0b1a28;
+  --color-tide: #122536;
+  --color-lagoon: #16324a;
+  --color-ink: #e6f2f8;
+  --color-foam: #f0f9ff;
+  --color-mist: #8aa8b8;
+  --color-accent: #22d3ee;
+  --color-accent-dim: #06b6d4;
+  --color-ok: #34d399;
+  --color-danger: #f87171;
+  --color-border: color-mix(in oklab, #e6f2f8 12%, transparent);
+  --color-border-strong: color-mix(in oklab, #e6f2f8 20%, transparent);
+  --shadow-border: 0 0 0 1px color-mix(in oklab, #e6f2f8 8%, transparent), 0 8px 24px color-mix(in oklab, #000 35%, transparent);
+  --shadow-border-hover: 0 0 0 1px color-mix(in oklab, #22d3ee 28%, transparent), 0 10px 28px color-mix(in oklab, #22d3ee 12%, transparent);
 }
 
 @layer base {
@@ -37,7 +56,6 @@
     -moz-osx-font-smoothing: grayscale;
     background: var(--color-abyss);
     color: var(--color-ink);
-    color-scheme: light;
   }
 
   body {
@@ -55,19 +73,31 @@
   h1, h2, h3 { text-wrap: balance; }
   p { text-wrap: pretty; }
   textarea, input { font-size: 16px; }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
 }
 
 .ocean-scene {
   background:
-    radial-gradient(90rem 36rem at 50% -12%, color-mix(in oklab, var(--color-accent) 18%, transparent), transparent 58%),
+    radial-gradient(90rem 36rem at 50% -12%, color-mix(in oklab, var(--color-accent) 16%, transparent), transparent 58%),
     radial-gradient(42rem 28rem at 88% 118%, color-mix(in oklab, var(--color-accent) 10%, transparent), transparent 62%),
-    linear-gradient(180deg, #ffffff 0%, #eef6ff 55%, #e3f0fb 100%);
+    linear-gradient(180deg, var(--color-tide) 0%, var(--color-abyss) 55%, var(--color-depth) 100%);
+}
+
+html[data-theme="dark"] .ocean-scene {
+  background:
+    radial-gradient(90rem 36rem at 50% -12%, color-mix(in oklab, #22d3ee 12%, transparent), transparent 58%),
+    radial-gradient(42rem 28rem at 12% 100%, color-mix(in oklab, #0284c7 14%, transparent), transparent 60%),
+    linear-gradient(180deg, #061018 0%, #0a1622 50%, #0d2137 100%);
 }
 
 .ocean-caustic {
   background:
-    radial-gradient(28rem 18rem at 28% 18%, color-mix(in oklab, #ffffff 70%, transparent), transparent 70%),
-    radial-gradient(22rem 16rem at 72% 42%, color-mix(in oklab, var(--color-accent) 12%, transparent), transparent 72%);
+    radial-gradient(28rem 18rem at 28% 18%, color-mix(in oklab, var(--color-tide) 50%, transparent), transparent 70%),
+    radial-gradient(22rem 16rem at 72% 42%, color-mix(in oklab, var(--color-accent) 10%, transparent), transparent 72%);
   animation: caustic-drift 22s ease-in-out infinite alternate;
 }
 
@@ -121,7 +151,7 @@
 .md-body code {
   font-family: var(--font-mono);
   font-size: 0.84em;
-  background: color-mix(in oklab, var(--color-lagoon) 90%, white);
+  background: color-mix(in oklab, var(--color-lagoon) 80%, transparent);
   padding: 0.12em 0.35em;
   border-radius: 6px;
 }
@@ -135,10 +165,8 @@
 .md-body img {
   max-width: 100%;
   border-radius: 12px;
-  outline: 1px solid color-mix(in oklab, var(--color-ink) 10%, transparent);
 }
 
-/* Music player bar */
 .music-bar {
   position: fixed;
   left: 0.75rem;
@@ -150,7 +178,7 @@
   gap: 0.75rem;
   padding: 0.65rem 0.85rem;
   border-radius: 16px;
-  background: color-mix(in oklab, #0b1e36 92%, #4da3ff);
+  background: color-mix(in oklab, #0b1e36 92%, #0ea5e9);
   color: #f4f9ff;
   box-shadow: 0 12px 40px color-mix(in oklab, #0b1e36 35%, transparent);
 }

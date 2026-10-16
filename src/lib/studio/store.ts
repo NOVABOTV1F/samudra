@@ -17,7 +17,12 @@ type StudioState = {
   newChat: () => string;
   setActive: (id: string) => void;
   deleteChat: (id: string) => void;
-  addMessage: (conversationId: string, message: Omit<ChatMessage, "id" | "createdAt"> & { id?: string }) => string;
+  renameChat: (id: string, title: string) => void;
+  clearAllChats: () => void;
+  addMessage: (
+    conversationId: string,
+    message: Omit<ChatMessage, "id" | "createdAt"> & { id?: string },
+  ) => string;
   patchMessage: (conversationId: string, messageId: string, patch: Partial<ChatMessage>) => void;
   setStreaming: (id: string | null) => void;
   openArtifact: (artifact: ActiveArtifact) => void;
@@ -117,6 +122,22 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       };
     });
   },
+  renameChat: (id, title) => {
+    const clean = title.trim().slice(0, 80) || "Tanpa judul";
+    set((state) => {
+      const conversations = state.conversations.map((chat) =>
+        chat.id === id ? { ...chat, title: clean, updatedAt: Date.now() } : chat,
+      );
+      const next = { conversations, activeId: state.activeId };
+      snapshot(next);
+      return next;
+    });
+  },
+  clearAllChats: () => {
+    const next = { conversations: [], activeId: null as string | null };
+    snapshot(next);
+    set({ ...next, artifact: null, streamingId: null });
+  },
   addMessage: (conversationId, message) => {
     const id = message.id ?? uid();
     set((state) => {
@@ -139,6 +160,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
               content: message.content,
               imageUrl: message.imageUrl,
               error: message.error,
+              pathway: message.pathway,
             },
           ].slice(-MAX_MESSAGES),
         };
@@ -170,9 +192,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
   openArtifact: (artifact) => set({ artifact }),
   closeArtifact: () => set({ artifact: null }),
   updateArtifactCode: (code) =>
-    set((state) =>
-      state.artifact ? { artifact: { ...state.artifact, code } } : state,
-    ),
+    set((state) => (state.artifact ? { artifact: { ...state.artifact, code } } : state)),
 }));
 
 export function selectActiveChat(state: StudioState) {

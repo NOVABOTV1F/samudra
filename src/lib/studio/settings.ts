@@ -1,6 +1,7 @@
-/** Pengaturan user v1.3 — key AI hanya di Cloudflare Runtime secrets */
+/** Pengaturan user — key AI hanya di Cloudflare Runtime secrets */
 
 export type AccessTier = "none" | "free" | "paid" | "permanent";
+export type ThemeMode = "light" | "dark" | "system";
 
 export type UserSettings = {
   systemPrompt: string;
@@ -9,23 +10,22 @@ export type UserSettings = {
   accessTier: AccessTier;
   accessUntil: number;
   licenseCode: string;
-  /** Musik master on/off */
   musicEnabled: boolean;
-  /** Auto play track pertama yang punya url saat buka app */
   musicAutoPlay: boolean;
-  /** Login Gmail display (opsional, lokal) */
   gmailEmail: string;
   gmailLoggedIn: boolean;
+  theme: ThemeMode;
+  textScale: number;
 };
 
-export const APP_VERSION = "1.3";
+export const APP_VERSION = "1.4";
 
 const KEY = "samudra-settings-v1";
 
 export const DEFAULT_SETTINGS: UserSettings = {
   systemPrompt:
-    "Kamu adalah ZUZUXF_AI / Otak Samudra v1.3. Bantu user ramah, jelas, praktis. Bahasa Indonesia kecuali diminta lain. Jika user minta gambar/foto, JANGAN menggambar SVG atau generate image — kirim saja tautan Google Images: https://www.google.com/search?tbm=isch&q=KATA_KUNCI (encode spasi). Boleh pakai pengetahuan umum setara hasil Google.",
-  personality: "ramah, ringkas, sedikit formal",
+    "Kamu adalah ZUZUXF_AI / Otak Samudra v1.4 (Ocean Intelligence). Bantu user ramah, jelas, praktis. Bahasa Indonesia kecuali diminta lain. Jika user minta gambar/foto, JANGAN generate image — kirim tautan Google Images: https://www.google.com/search?tbm=isch&q=KATA_KUNCI. Untuk kode web, utamakan HTML satu file siap dijalankan.",
+  personality: "ramah, ringkas, profesional ringan",
   preferProvider: "groq",
   accessTier: "none",
   accessUntil: 0,
@@ -34,6 +34,8 @@ export const DEFAULT_SETTINGS: UserSettings = {
   musicAutoPlay: false,
   gmailEmail: "",
   gmailLoggedIn: false,
+  theme: "system",
+  textScale: 1,
 };
 
 export function loadSettings(): UserSettings {
@@ -57,6 +59,17 @@ export function saveSettings(s: UserSettings) {
   } catch {
     /* ignore */
   }
+}
+
+export function applyTheme(theme: ThemeMode) {
+  if (typeof document === "undefined") return;
+  const root = document.documentElement;
+  let mode = theme;
+  if (theme === "system") {
+    mode = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+  root.setAttribute("data-theme", mode === "dark" ? "dark" : "light");
+  root.style.colorScheme = mode === "dark" ? "dark" : "light";
 }
 
 export function redeemLicense(code: string): {
@@ -102,3 +115,34 @@ export function hasActiveAccess(s: UserSettings): boolean {
 
 export const ADMIN_TRIGGER = "/SAMUDRA.PANEL";
 export const ADMIN_KEY = "DEV=ZUZUXF_AI=™X10WDEV";
+
+export const QUICK_ACTIONS = [
+  {
+    id: "coding",
+    title: "Coding",
+    blurb: "HTML/CSS/JS siap jalan",
+    prompt:
+      "Bantu saya coding: buat halaman HTML satu file yang rapi, responsif, dan siap dijalankan di browser. Jelaskan singkat cara kerjanya.",
+  },
+  {
+    id: "belajar",
+    title: "Belajar",
+    blurb: "Penjelasan langkah demi langkah",
+    prompt:
+      "Jelaskan topik ini langkah demi langkah untuk pemula, dengan analogi sederhana dan 3 soal latihan singkat:",
+  },
+  {
+    id: "menulis",
+    title: "Menulis",
+    blurb: "Draf teks profesional",
+    prompt:
+      "Bantu saya menulis draf yang jelas dan profesional. Minta detail singkat dulu jika kurang lengkap, lalu berikan hasil siap pakai.",
+  },
+  {
+    id: "analisis",
+    title: "Analisis",
+    blurb: "Urai masalah terstruktur",
+    prompt:
+      "Analisis masalah berikut secara terstruktur: ringkasan, penyebab mungkin, opsi solusi, dan rekomendasi. Masalah:",
+  },
+] as const;
