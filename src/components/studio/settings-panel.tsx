@@ -1,6 +1,7 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { Music2, Search, Settings, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { DeployPanel } from "@/components/studio/deploy-panel";
 import { Button } from "@/components/ui/button";
 import {
   APP_VERSION,
@@ -48,7 +49,9 @@ export function SettingsPanel({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
-  const [tab, setTab] = useState<"prompt" | "tampilan" | "keys" | "music" | "akun">("prompt");
+  const [tab, setTab] = useState<
+    "prompt" | "tampilan" | "keys" | "music" | "akun" | "deploy"
+  >("prompt");
   const [s, setS] = useState<UserSettings>(loadSettings);
   const [code, setCode] = useState("");
   const [msg, setMsg] = useState("");
@@ -173,7 +176,7 @@ export function SettingsPanel({
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-abyss/60" />
-        <Dialog.Content className="fixed inset-x-3 top-[8%] z-50 mx-auto max-h-[84dvh] w-full max-w-lg overflow-hidden rounded-2xl border border-border bg-tide shadow-[var(--shadow-border)] outline-none">
+        <Dialog.Content className="fixed inset-x-3 top-[6%] z-50 mx-auto max-h-[88dvh] w-full max-w-lg overflow-hidden rounded-2xl border border-border bg-tide shadow-[var(--shadow-border)] outline-none">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <Dialog.Title className="text-sm font-medium text-foam">
               Pengaturan · v{APP_VERSION}
@@ -188,20 +191,25 @@ export function SettingsPanel({
           <div className="flex flex-wrap gap-1 border-b border-border px-2 py-2">
             {(
               [
-                ["prompt", "Prompt"],
-                ["tampilan", "Tema"],
-                ["keys", "Akses"],
-                ["music", "Music"],
-                ["akun", "Akun"],
+                ["prompt", "Prompt", false],
+                ["tampilan", "Tema", false],
+                ["keys", "Akses", false],
+                ["music", "Music", false],
+                ["akun", "Akun", false],
+                ["deploy", "Deploy", true],
               ] as const
-            ).map(([id, label]) => (
+            ).map(([id, label, golden]) => (
               <button
                 key={id}
                 type="button"
                 onClick={() => setTab(id)}
                 className={cn(
                   "rounded-lg px-3 py-1.5 text-xs font-medium",
-                  tab === id ? "bg-lagoon text-foam" : "text-mist hover:text-ink",
+                  golden &&
+                    (tab === id
+                      ? "bg-amber-500 font-semibold text-white shadow"
+                      : "bg-gradient-to-r from-amber-200 to-yellow-300 font-semibold text-amber-950"),
+                  !golden && (tab === id ? "bg-lagoon text-foam" : "text-mist hover:text-ink"),
                 )}
               >
                 {label}
@@ -209,7 +217,7 @@ export function SettingsPanel({
             ))}
           </div>
 
-          <div className="max-h-[min(60dvh,28rem)] overflow-y-auto px-4 py-3">
+          <div className="max-h-[min(68dvh,32rem)] overflow-y-auto px-4 py-3">
             {tab === "prompt" ? (
               <div className="space-y-3">
                 <label className="block text-xs text-mist">Prompt awal</label>
@@ -229,7 +237,7 @@ export function SettingsPanel({
 
             {tab === "tampilan" ? (
               <div className="space-y-3">
-                <p className="text-xs text-mist">Tema Ocean Intelligence</p>
+                <p className="text-xs text-mist">Tema</p>
                 <div className="flex flex-wrap gap-2">
                   {(
                     [
@@ -251,9 +259,6 @@ export function SettingsPanel({
                     </button>
                   ))}
                 </div>
-                <p className="text-[11px] text-mist">
-                  Gelap: biru laut + cyan. Terang: putih + biru. Animasi ringan; hormati reduced-motion.
-                </p>
               </div>
             ) : null}
 
@@ -262,7 +267,7 @@ export function SettingsPanel({
                 <div className="rounded-xl bg-lagoon/80 px-3 py-2 text-xs leading-relaxed text-mist">
                   <strong className="text-foam">API key tidak diisi user.</strong>
                   <br />
-                  Cloudflare Runtime secrets: GEMINI_API_KEY (V1), GROQ_API_KEY (V2).
+                  Cloudflare Runtime secrets: GEMINI_API_KEY, GROQ_API_KEY, GITHUB_TOKEN, dll.
                 </div>
                 <p className="text-xs text-mist">
                   Lisensi: <strong className="text-foam">{accessLabel}</strong>
@@ -311,9 +316,7 @@ export function SettingsPanel({
                     {s.musicAutoPlay ? "ON" : "OFF"}
                   </button>
                 </div>
-                <p className="text-[11px] text-mist">
-                  Hanya MP3 raw. Play background tanpa bar. Slot kosong: {emptySlots}
-                </p>
+                <p className="text-[11px] text-mist">MP3 raw. Slot kosong: {emptySlots}</p>
                 <div className="relative">
                   <Search className="pointer-events-none absolute top-2.5 left-3 size-4 text-mist" />
                   <input
@@ -325,7 +328,7 @@ export function SettingsPanel({
                 </div>
                 <ul className="max-h-52 space-y-1 overflow-y-auto">
                   {filtered.length === 0 ? (
-                    <li className="px-2 py-3 text-xs text-mist">Belum ada MP3 terisi.</li>
+                    <li className="px-2 py-3 text-xs text-mist">Belum ada MP3.</li>
                   ) : (
                     filtered.map((t) => (
                       <li key={t.id}>
@@ -343,10 +346,7 @@ export function SettingsPanel({
                           <Music2 className="size-4 text-accent" />
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-sm text-foam">{t.title}</span>
-                            <span className="block truncate text-[11px] text-mist">
-                              {t.artist}
-                              {activeId === t.id ? " · playing" : ""}
-                            </span>
+                            <span className="block truncate text-[11px] text-mist">{t.artist}</span>
                           </span>
                         </button>
                       </li>
@@ -359,9 +359,6 @@ export function SettingsPanel({
 
             {tab === "akun" ? (
               <div className="space-y-3">
-                <p className="text-xs text-mist">
-                  Login Gmail opsional — penanda lokal, bukan OAuth penuh.
-                </p>
                 {s.gmailLoggedIn ? (
                   <div className="rounded-xl bg-lagoon/80 px-3 py-3 text-sm text-foam">
                     Masuk sebagai <strong>{s.gmailEmail || "Gmail"}</strong>
@@ -376,6 +373,8 @@ export function SettingsPanel({
                 )}
               </div>
             ) : null}
+
+            {tab === "deploy" ? <DeployPanel /> : null}
           </div>
         </Dialog.Content>
       </Dialog.Portal>
