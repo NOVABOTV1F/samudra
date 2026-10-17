@@ -28,14 +28,15 @@ function slugify(name: string) {
   );
 }
 
+/** Key: daftar DEPLOY_PREMIUM_KEYS di secrets, atau format ZUZUKX_XXXX */
 function keyOk(key: string): boolean {
+  const k = key.trim().toUpperCase();
   const allow = env("DEPLOY_PREMIUM_KEYS");
   if (allow) {
-    const set = allow.split(",").map((s) => s.trim()).filter(Boolean);
-    if (set.includes(key.trim())) return true;
+    const set = allow.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean);
+    if (set.includes(k)) return true;
   }
-  // Format default jika list kosong: ZUZUKX…_103942974V1.5-xxxx
-  return /^ZUZUKX.?_103942974V1\.5-[A-Za-z0-9]{4,32}$/u.test(key.trim());
+  return /^ZUZUKX_[A-Z0-9]{6,24}$/.test(k);
 }
 
 async function deployGithub(siteName: string, html: string) {
@@ -45,7 +46,7 @@ async function deployGithub(siteName: string, html: string) {
     return {
       ok: false as const,
       error:
-        "GITHUB_TOKEN / GITHUB_OWNER belum di-set di Cloudflare Runtime secrets (satu tempat dengan GEMINI/GROQ).",
+        "GITHUB_TOKEN / GITHUB_OWNER belum di Cloudflare Workers → Settings → Variables and Secrets.",
     };
   }
 
@@ -57,7 +58,6 @@ async function deployGithub(siteName: string, html: string) {
     "X-GitHub-Api-Version": "2022-11-28",
   };
 
-  // Pastikan repo ada
   const getRepo = await fetch(`https://api.github.com/repos/${owner}/${repo}`, { headers });
   if (getRepo.status === 404) {
     const create = await fetch("https://api.github.com/user/repos", {
@@ -78,7 +78,6 @@ async function deployGithub(siteName: string, html: string) {
     return { ok: false as const, error: `GitHub repo error: ${getRepo.status}` };
   }
 
-  // Ambil SHA index.html jika ada (update)
   let sha: string | undefined;
   const existing = await fetch(
     `https://api.github.com/repos/${owner}/${repo}/contents/index.html`,
@@ -110,7 +109,6 @@ async function deployGithub(siteName: string, html: string) {
     return { ok: false as const, error: `Gagal upload index.html: ${put.status} ${t.slice(0, 200)}` };
   }
 
-  // Aktifkan GitHub Pages (best effort)
   await fetch(`https://api.github.com/repos/${owner}/${repo}/pages`, {
     method: "POST",
     headers,
@@ -143,7 +141,6 @@ export const Route = createFileRoute("/api/deploy")({
           return Response.json({ error: "Key premium tidak valid." }, { status: 403 });
         }
 
-        // V1 GitHub
         if (target === "1") {
           const result = await deployGithub(siteName, html);
           if (!result.ok) return Response.json({ error: result.error }, { status: 502 });
@@ -155,19 +152,17 @@ export const Route = createFileRoute("/api/deploy")({
           });
         }
 
-        // V2 Vercel — butuh VERCEL_TOKEN + team opsional
         if (target === "2") {
           const token = env("VERCEL_TOKEN") || env("DEPLOY_VERCEL_TOKEN");
           if (!token) {
             return Response.json(
               {
                 error:
-                  "VERCEL_TOKEN belum di Cloudflare secrets. Set di tempat yang sama dengan GEMINI_API_KEY.",
+                  "VERCEL_TOKEN belum di Cloudflare Workers Settings → Variables and Secrets.",
               },
               { status: 503 },
             );
           }
-          // Deploy sederhana via Vercel API (static files)
           const project = slugify(siteName);
           const res = await fetch("https://api.vercel.com/v13/deployments", {
             method: "POST",
@@ -188,12 +183,11 @@ export const Route = createFileRoute("/api/deploy")({
               { status: 502 },
             );
           }
-          const data = (await res.json()) as { url?: string; id?: string };
+          const data = (await res.json()) as { url?: string };
           const url = data.url?.startsWith("http") ? data.url : `https://${data.url}`;
           return Response.json({ ok: true, target: "2", url: url || "https://vercel.com" });
         }
 
-        // V3 Cloudflare Pages — butuh token + account
         if (target === "3") {
           const token = env("CLOUDFLARE_API_TOKEN") || env("DEPLOY_CF_TOKEN");
           const account = env("CLOUDFLARE_ACCOUNT_ID") || env("DEPLOY_CF_ACCOUNT");
@@ -201,21 +195,17 @@ export const Route = createFileRoute("/api/deploy")({
             return Response.json(
               {
                 error:
-                  "CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID belum di Runtime secrets.",
+                  "CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID belum di Workers Variables and Secrets.",
               },
               { status: 503 },
             );
           }
-          return Response.json(
-            {
-              ok: true,
-              target: "3",
-              url: `https://dash.cloudflare.com/${account}/pages`,
-              note:
-                "Token Cloudflare siap. Upload index.html lewat dashboard Pages atau Wrangler (API direct file butuh project ID).",
-            },
-            { status: 200 },
-          );
+          return Response.json({
+            ok: true,
+            target: "3",
+            url: `https://dash.cloudflare.com/${account}/pages`,
+            note: "Token Cloudflare siap. Selesaikan project Pages di dashboard jika belum ada.",
+          });
         }
 
         return Response.json({ error: "Target tidak dikenal." }, { status: 400 });

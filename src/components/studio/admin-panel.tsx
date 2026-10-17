@@ -1,7 +1,8 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { X } from "lucide-react";
+import { Copy, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { PREMIUM_KEYS } from "@/lib/studio/deploy";
 import { ADMIN_KEY } from "@/lib/studio/settings";
 
 export function AdminPanel({
@@ -16,6 +17,7 @@ export function AdminPanel({
   const [err, setErr] = useState("");
   const [announce, setAnnounce] = useState("");
   const [welcome, setWelcome] = useState("Hai! Aku Otak Samudra.");
+  const [copied, setCopied] = useState("");
 
   function submitKey() {
     if (key.trim() === ADMIN_KEY) {
@@ -35,11 +37,21 @@ export function AdminPanel({
     }, 200);
   }
 
+  async function copyKey(k: string) {
+    try {
+      await navigator.clipboard.writeText(k);
+      setCopied(k);
+      window.setTimeout(() => setCopied(""), 1500);
+    } catch {
+      /* */
+    }
+  }
+
   return (
     <Dialog.Root open={open} onOpenChange={(v) => (v ? onOpenChange(true) : close())}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-[70] bg-abyss/70" />
-        <Dialog.Content className="fixed inset-x-3 top-[10%] z-[70] mx-auto max-h-[80dvh] w-full max-w-md overflow-y-auto rounded-2xl border border-border bg-tide p-4 shadow-[var(--shadow-border)] outline-none">
+        <Dialog.Content className="fixed inset-x-3 top-[8%] z-[70] mx-auto max-h-[84dvh] w-full max-w-md overflow-y-auto rounded-2xl border border-border bg-tide p-4 shadow-[var(--shadow-border)] outline-none">
           <div className="mb-3 flex items-center justify-between">
             <Dialog.Title className="text-sm font-medium text-foam">Admin Panel Samudra</Dialog.Title>
             <Dialog.Close asChild>
@@ -69,12 +81,40 @@ export function AdminPanel({
               <p className="rounded-xl bg-ok/15 px-3 py-2 text-xs text-ok">Sukses — admin terbuka.</p>
 
               <section className="space-y-2">
+                <h3 className="text-xs font-medium uppercase tracking-wide text-mist">
+                  Key Deploy Premium ({PREMIUM_KEYS.length})
+                </h3>
+                <p className="text-[11px] text-mist">
+                  Format: ZUZUKX_… (tanpa stiker). Bagikan 1 key per user.
+                </p>
+                <ul className="max-h-48 space-y-1 overflow-y-auto rounded-xl border border-border bg-depth p-2">
+                  {PREMIUM_KEYS.map((k) => (
+                    <li
+                      key={k}
+                      className="flex items-center gap-2 rounded-lg px-2 py-1 font-mono text-[11px] hover:bg-lagoon"
+                    >
+                      <span className="min-w-0 flex-1 truncate text-foam">{k}</span>
+                      <button
+                        type="button"
+                        className="shrink-0 text-mist hover:text-accent"
+                        aria-label={`Salin ${k}`}
+                        onClick={() => void copyKey(k)}
+                      >
+                        <Copy className="size-3.5" />
+                      </button>
+                      {copied === k ? <span className="text-[10px] text-ok">OK</span> : null}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+
+              <section className="space-y-2">
                 <h3 className="text-xs font-medium uppercase tracking-wide text-mist">Pengumuman</h3>
                 <textarea
                   className="min-h-16 w-full rounded-xl border border-border bg-depth px-3 py-2 text-sm"
                   value={announce}
                   onChange={(e) => setAnnounce(e.target.value)}
-                  placeholder="Pesan di beranda semua user (disimpan lokal di perangkat ini)"
+                  placeholder="Pesan di beranda (lokal perangkat ini)"
                 />
                 <Button
                   onClick={() => {
@@ -110,15 +150,15 @@ export function AdminPanel({
               </section>
 
               <section className="space-y-1 text-xs text-mist">
-                <h3 className="font-medium text-foam">Kode lisensi (bagi manual)</h3>
+                <h3 className="font-medium text-foam">Lisensi chat</h3>
                 <p>
-                  <code>SAMUDRA-FREE</code> → 24 jam
+                  <code>SAMUDRA-FREE</code> · 24 jam
                 </p>
                 <p>
-                  <code>SAMUDRA-20K</code> → 3 minggu
+                  <code>SAMUDRA-20K</code> · 3 minggu
                 </p>
                 <p>
-                  <code>SAMUDRA-PERM</code> → permanen
+                  <code>SAMUDRA-PERM</code> · permanen
                 </p>
               </section>
 
@@ -134,10 +174,6 @@ export function AdminPanel({
                 >
                   Hapus semua riwayat lokal
                 </Button>
-                <p className="pt-2">
-                  Otak: edit <code>src/lib/brain/pathways</code> → <code>npm run brain</code> → deploy.
-                  Auto-update ilmu butuh push GitHub + rebuild hosting.
-                </p>
               </section>
             </div>
           )}

@@ -16,6 +16,10 @@ import { cn } from "@/lib/utils";
 
 type Step = "gate" | "wait16" | "form" | "wait10" | "done";
 
+/** Tema premium halaman: biru muda + putih */
+const shell =
+  "rounded-2xl border border-sky-200 bg-gradient-to-b from-sky-50 to-white p-4 shadow-sm dark:border-sky-800/40 dark:from-sky-950/40 dark:to-depth";
+
 export function DeployPanel() {
   const [step, setStep] = useState<Step>(hasPremiumSession() ? "form" : "gate");
   const [keyInput, setKeyInput] = useState("");
@@ -122,20 +126,20 @@ export function DeployPanel() {
   return (
     <div className="space-y-4">
       {step === "gate" ? (
-        <div className="space-y-3 rounded-2xl border border-amber-400/50 bg-gradient-to-br from-amber-50 to-yellow-100 p-4 dark:from-amber-950/40 dark:to-yellow-900/20">
-          <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">Deploy Premium</p>
-          <label className="block text-xs text-amber-900/70 dark:text-amber-100/70">Key</label>
+        <div className={cn(shell, "space-y-3")}>
+          <p className="text-sm font-semibold text-sky-800 dark:text-sky-200">Deploy Premium</p>
+          <label className="block text-xs text-sky-700/80 dark:text-sky-100/70">Key</label>
           <input
             type="password"
             autoComplete="off"
-            className="w-full rounded-xl border border-amber-300/60 bg-white/90 px-3 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-amber-400/50 dark:bg-black/30"
+            className="w-full rounded-xl border border-sky-200 bg-white px-3 py-2.5 text-sm text-ink outline-none focus:ring-2 focus:ring-sky-300 dark:border-sky-700 dark:bg-black/30"
             value={keyInput}
             onChange={(e) => setKeyInput(e.target.value)}
             placeholder="••••••••••••"
           />
           <Button
             variant="primary"
-            className="w-full bg-amber-500 text-white hover:bg-amber-600"
+            className="w-full bg-sky-500 text-white hover:bg-sky-600"
             onClick={confirmKey}
           >
             Confirm
@@ -145,7 +149,7 @@ export function DeployPanel() {
             href={OWNER_WA_LINK}
             target="_blank"
             rel="noopener noreferrer"
-            className="block text-center text-xs font-medium text-amber-800 underline dark:text-amber-200"
+            className="block text-center text-xs font-medium text-sky-700 underline dark:text-sky-300"
           >
             Chat owner
           </a>
@@ -165,7 +169,7 @@ export function DeployPanel() {
           <div className="absolute bottom-10 left-6 right-6">
             <div className="h-1 overflow-hidden rounded-full bg-white/20">
               <div
-                className="h-full bg-amber-400 transition-[width] duration-100"
+                className="h-full bg-sky-400 transition-[width] duration-100"
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -174,9 +178,9 @@ export function DeployPanel() {
       ) : null}
 
       {(step === "form" || step === "done") && (
-        <div className="space-y-4 rounded-2xl border border-amber-400/40 bg-gradient-to-b from-amber-50/90 to-white p-4 dark:from-amber-950/30 dark:to-depth">
+        <div className={cn(shell, "space-y-4")}>
           <div className="flex justify-center pt-1">
-            <div className="size-28 overflow-hidden rounded-full border-2 border-amber-400 shadow-lg">
+            <div className="size-28 overflow-hidden rounded-full border-2 border-sky-300 shadow-lg">
               <video
                 className="size-full object-cover"
                 src={DEPLOY_VIDEO}
@@ -197,8 +201,8 @@ export function DeployPanel() {
                 className={cn(
                   "min-w-[4.5rem] rounded-xl px-4 py-2.5 text-sm font-semibold",
                   target === v
-                    ? "bg-amber-500 text-white shadow"
-                    : "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-100",
+                    ? "bg-sky-500 text-white shadow"
+                    : "bg-sky-100 text-sky-900 dark:bg-sky-900/50 dark:text-sky-100",
                 )}
               >
                 V{v}
@@ -207,9 +211,9 @@ export function DeployPanel() {
           </div>
 
           <div>
-            <label className="block text-xs text-mist">Name website</label>
+            <label className="block text-xs text-sky-800/70 dark:text-sky-200/70">Name website</label>
             <input
-              className="mt-1 w-full rounded-xl border border-border bg-tide px-3 py-2 text-sm outline-none"
+              className="mt-1 w-full rounded-xl border border-sky-200 bg-white px-3 py-2 text-sm outline-none dark:border-sky-700 dark:bg-black/20"
               value={siteName}
               onChange={(e) => setSiteName(e.target.value)}
               placeholder="(contoh toko diana)"
@@ -223,8 +227,8 @@ export function DeployPanel() {
               className={cn(
                 "w-full rounded-xl border px-3 py-2.5 text-left text-xs",
                 fileMode === "github"
-                  ? "border-amber-500 bg-amber-50 dark:bg-amber-950/40"
-                  : "border-border",
+                  ? "border-sky-500 bg-sky-50 dark:bg-sky-950/50"
+                  : "border-sky-100 dark:border-sky-800",
               )}
             >
               Izinkan membaca files GitHub dan meminta izin untuk melihat all files
@@ -235,8 +239,8 @@ export function DeployPanel() {
               className={cn(
                 "w-full rounded-xl border px-3 py-2.5 text-left text-xs",
                 fileMode === "storage"
-                  ? "border-amber-500 bg-amber-50 dark:bg-amber-950/40"
-                  : "border-border",
+                  ? "border-sky-500 bg-sky-50 dark:bg-sky-950/50"
+                  : "border-sky-100 dark:border-sky-800",
               )}
             >
               Ambil file dari penyimpanan
@@ -254,15 +258,15 @@ export function DeployPanel() {
               className={cn(
                 "w-full rounded-xl border px-3 py-2.5 text-left text-xs",
                 fileMode === "paste"
-                  ? "border-amber-500 bg-amber-50 dark:bg-amber-950/40"
-                  : "border-border",
+                  ? "border-sky-500 bg-sky-50 dark:bg-sky-950/50"
+                  : "border-sky-100 dark:border-sky-800",
               )}
             >
               Paste files (hanya index.html)
             </button>
             {fileMode === "paste" || fileMode === "github" ? (
               <textarea
-                className="min-h-28 w-full rounded-xl border border-border bg-depth px-3 py-2 font-mono text-[11px] outline-none"
+                className="min-h-28 w-full rounded-xl border border-sky-200 bg-white px-3 py-2 font-mono text-[11px] outline-none dark:border-sky-700 dark:bg-black/20"
                 placeholder={
                   fileMode === "paste" ? "Tempel isi index.html…" : "Tempel HTML / isi file…"
                 }
@@ -279,7 +283,7 @@ export function DeployPanel() {
 
           <Button
             variant="primary"
-            className="w-full bg-amber-500 font-semibold text-white hover:bg-amber-600"
+            className="w-full bg-sky-500 font-semibold text-white hover:bg-sky-600"
             onClick={() => void runDeploy()}
           >
             Deploy
@@ -287,14 +291,14 @@ export function DeployPanel() {
 
           {err ? <p className="text-xs text-danger">{err}</p> : null}
 
-          <div className="space-y-2 border-t border-amber-200/50 pt-3">
-            <p className="text-xs font-medium text-amber-800 dark:text-amber-200">Hasil deploy</p>
+          <div className="space-y-2 border-t border-sky-100 pt-3 dark:border-sky-900">
+            <p className="text-xs font-medium text-sky-800 dark:text-sky-200">Hasil deploy</p>
             {lastUrl ? (
               <a
                 href={lastUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block break-all text-xs text-accent-dim underline"
+                className="block break-all text-xs text-sky-600 underline dark:text-sky-300"
               >
                 {lastUrl}
               </a>
@@ -306,7 +310,7 @@ export function DeployPanel() {
                 {results.map((r) => (
                   <li
                     key={r.id}
-                    className="flex items-start gap-2 rounded-lg bg-tide/80 px-2 py-1.5 text-[11px]"
+                    className="flex items-start gap-2 rounded-lg bg-white/80 px-2 py-1.5 text-[11px] dark:bg-black/20"
                   >
                     <span className="min-w-0 flex-1">
                       <span className="font-medium text-foam">{r.name}</span>
@@ -316,7 +320,7 @@ export function DeployPanel() {
                           href={r.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="mt-0.5 block truncate text-accent-dim underline"
+                          className="mt-0.5 block truncate text-sky-600 underline dark:text-sky-300"
                         >
                           {r.url}
                         </a>
