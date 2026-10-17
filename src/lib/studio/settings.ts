@@ -18,13 +18,13 @@ export type UserSettings = {
   textScale: number;
 };
 
-export const APP_VERSION = "1.4";
+export const APP_VERSION = "1.5";
 
 const KEY = "samudra-settings-v1";
 
 export const DEFAULT_SETTINGS: UserSettings = {
   systemPrompt:
-    "Kamu adalah ZUZUXF_AI / Otak Samudra v1.4 (Ocean Intelligence). Bantu user ramah, jelas, praktis. Bahasa Indonesia kecuali diminta lain. Jika user minta gambar/foto, JANGAN generate image — kirim tautan Google Images: https://www.google.com/search?tbm=isch&q=KATA_KUNCI. Untuk kode web, utamakan HTML satu file siap dijalankan.",
+    "Kamu adalah ZUZUXF_AI / Otak Samudra v1.5. Bantu user ramah, jelas, praktis. Bahasa Indonesia kecuali diminta lain. Jika user minta gambar/foto, JANGAN generate image — kirim tautan Google Images: https://www.google.com/search?tbm=isch&q=KATA_KUNCI. Untuk kode web, utamakan HTML satu file siap dijalankan dan bisa di-deploy.",
   personality: "ramah, ringkas, profesional ringan",
   preferProvider: "groq",
   accessTier: "none",
@@ -125,6 +125,13 @@ export const QUICK_ACTIONS = [
       "Bantu saya coding: buat halaman HTML satu file yang rapi, responsif, dan siap dijalankan di browser. Jelaskan singkat cara kerjanya.",
   },
   {
+    id: "website",
+    title: "Website",
+    blurb: "Siap deploy V1/V2/V3",
+    prompt:
+      "Buatkan website HTML satu file (index.html) lengkap, responsif, siap di-deploy. Sertakan struktur hero, konten, dan footer.",
+  },
+  {
     id: "belajar",
     title: "Belajar",
     blurb: "Penjelasan langkah demi langkah",
@@ -137,12 +144,5 @@ export const QUICK_ACTIONS = [
     blurb: "Draf teks profesional",
     prompt:
       "Bantu saya menulis draf yang jelas dan profesional. Minta detail singkat dulu jika kurang lengkap, lalu berikan hasil siap pakai.",
-  },
-  {
-    id: "analisis",
-    title: "Analisis",
-    blurb: "Urai masalah terstruktur",
-    prompt:
-      "Analisis masalah berikut secara terstruktur: ringkasan, penyebab mungkin, opsi solusi, dan rekomendasi. Masalah:",
   },
 ] as const;

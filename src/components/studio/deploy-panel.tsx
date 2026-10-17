@@ -28,6 +28,7 @@ export function DeployPanel() {
   const [results, setResults] = useState<DeployResult[]>(() => loadDeployResults());
   const [lastUrl, setLastUrl] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+  const savedKeyRef = useRef("");
 
   useEffect(() => {
     if (step !== "wait16" && step !== "wait10") return;
@@ -51,6 +52,7 @@ export function DeployPanel() {
       setErr("Key tidak valid.");
       return;
     }
+    savedKeyRef.current = keyInput.trim();
     setPremiumSession(true);
     setStep("wait16");
   }
@@ -73,43 +75,44 @@ export function DeployPanel() {
       return;
     }
     if (!html.trim() || html.trim().length < 20) {
-      setErr("Siapkan file (index.html)."
-      );
+      setErr("Siapkan file (index.html).");
       return;
     }
 
     setStep("wait10");
 
-    // Deploy di background selama video 10 detik
     try {
       const res = await fetch("/api/deploy", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          premiumKey: keyInput || "session",
+          premiumKey: savedKeyRef.current || keyInput.trim(),
           target,
           siteName: siteName.trim(),
           html,
           mode: "create",
         }),
       });
-      const data = (await res.json()) as { ok?: boolean; url?: string; error?: string; note?: string };
+      const data = (await res.json()) as {
+        ok?: boolean;
+        url?: string;
+        error?: string;
+        note?: string;
+      };
       if (!res.ok || !data.ok) {
         setErr(data.error || "Deploy gagal.");
-        // tetap lanjut ke done agar UI tidak macet; hasil error ditampilkan
         setLastUrl("");
         return;
       }
       const url = data.url || "";
       setLastUrl(url);
-      const item = addDeployResult({
+      addDeployResult({
         name: siteName.trim(),
         target,
         url,
         note: data.note,
       });
       setResults(loadDeployResults());
-      void item;
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Jaringan error.");
       setLastUrl("");
@@ -118,7 +121,6 @@ export function DeployPanel() {
 
   return (
     <div className="space-y-4">
-      {/* GATE */}
       {step === "gate" ? (
         <div className="space-y-3 rounded-2xl border border-amber-400/50 bg-gradient-to-br from-amber-50 to-yellow-100 p-4 dark:from-amber-950/40 dark:to-yellow-900/20">
           <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">Deploy Premium</p>
@@ -150,7 +152,6 @@ export function DeployPanel() {
         </div>
       ) : null}
 
-      {/* WAIT 16s fullscreen-ish video */}
       {step === "wait16" || step === "wait10" ? (
         <div className="fixed inset-0 z-[80] flex flex-col items-center justify-center bg-black">
           <video
@@ -172,10 +173,8 @@ export function DeployPanel() {
         </div>
       ) : null}
 
-      {/* FORM */}
       {(step === "form" || step === "done") && (
         <div className="space-y-4 rounded-2xl border border-amber-400/40 bg-gradient-to-b from-amber-50/90 to-white p-4 dark:from-amber-950/30 dark:to-depth">
-          {/* circular looping video */}
           <div className="flex justify-center pt-1">
             <div className="size-28 overflow-hidden rounded-full border-2 border-amber-400 shadow-lg">
               <video
@@ -189,7 +188,6 @@ export function DeployPanel() {
             </div>
           </div>
 
-          {/* V1 V2 V3 — tanpa label kegunaan */}
           <div className="flex justify-center gap-2">
             {(["1", "2", "3"] as const).map((v) => (
               <button
@@ -224,7 +222,9 @@ export function DeployPanel() {
               onClick={() => setFileMode("github")}
               className={cn(
                 "w-full rounded-xl border px-3 py-2.5 text-left text-xs",
-                fileMode === "github" ? "border-amber-500 bg-amber-50 dark:bg-amber-950/40" : "border-border",
+                fileMode === "github"
+                  ? "border-amber-500 bg-amber-50 dark:bg-amber-950/40"
+                  : "border-border",
               )}
             >
               Izinkan membaca files GitHub dan meminta izin untuk melihat all files
@@ -234,7 +234,9 @@ export function DeployPanel() {
               onClick={() => fileRef.current?.click()}
               className={cn(
                 "w-full rounded-xl border px-3 py-2.5 text-left text-xs",
-                fileMode === "storage" ? "border-amber-500 bg-amber-50 dark:bg-amber-950/40" : "border-border",
+                fileMode === "storage"
+                  ? "border-amber-500 bg-amber-50 dark:bg-amber-950/40"
+                  : "border-border",
               )}
             >
               Ambil file dari penyimpanan
@@ -251,7 +253,9 @@ export function DeployPanel() {
               onClick={() => setFileMode("paste")}
               className={cn(
                 "w-full rounded-xl border px-3 py-2.5 text-left text-xs",
-                fileMode === "paste" ? "border-amber-500 bg-amber-50 dark:bg-amber-950/40" : "border-border",
+                fileMode === "paste"
+                  ? "border-amber-500 bg-amber-50 dark:bg-amber-950/40"
+                  : "border-border",
               )}
             >
               Paste files (hanya index.html)
@@ -259,13 +263,17 @@ export function DeployPanel() {
             {fileMode === "paste" || fileMode === "github" ? (
               <textarea
                 className="min-h-28 w-full rounded-xl border border-border bg-depth px-3 py-2 font-mono text-[11px] outline-none"
-                placeholder={fileMode === "paste" ? "Tempel isi index.html…" : "Tempel HTML / isi file…"}
+                placeholder={
+                  fileMode === "paste" ? "Tempel isi index.html…" : "Tempel HTML / isi file…"
+                }
                 value={html}
                 onChange={(e) => setHtml(e.target.value)}
               />
             ) : null}
             {fileMode === "storage" && html ? (
-              <p className="text-[11px] text-ok">File dimuat ({html.length.toLocaleString("id-ID")} karakter)</p>
+              <p className="text-[11px] text-ok">
+                File dimuat ({html.length.toLocaleString("id-ID")} karakter)
+              </p>
             ) : null}
           </div>
 
@@ -279,7 +287,6 @@ export function DeployPanel() {
 
           {err ? <p className="text-xs text-danger">{err}</p> : null}
 
-          {/* Hasil deploy — tersimpan */}
           <div className="space-y-2 border-t border-amber-200/50 pt-3">
             <p className="text-xs font-medium text-amber-800 dark:text-amber-200">Hasil deploy</p>
             {lastUrl ? (
