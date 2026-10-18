@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   addDeployResult,
-  DEPLOY_VIDEO,
+  DEPLOY_VIDEO_DEPLOY,
+  DEPLOY_VIDEO_KEY,
   hasPremiumSession,
   isPremiumKeyFormat,
   loadDeployResults,
@@ -14,11 +15,12 @@ import {
 } from "@/lib/studio/deploy";
 import { cn } from "@/lib/utils";
 
-type Step = "gate" | "wait16" | "form" | "wait10" | "done";
+type Step = "gate" | "waitKey" | "form" | "waitDeploy" | "done";
 
-/** Tema premium halaman: biru muda + putih */
 const shell =
   "rounded-2xl border border-sky-200 bg-gradient-to-b from-sky-50 to-white p-4 shadow-sm dark:border-sky-800/40 dark:from-sky-950/40 dark:to-depth";
+
+const WAIT_MS = 28_000;
 
 export function DeployPanel() {
   const [step, setStep] = useState<Step>(hasPremiumSession() ? "form" : "gate");
@@ -31,24 +33,38 @@ export function DeployPanel() {
   const [html, setHtml] = useState("");
   const [results, setResults] = useState<DeployResult[]>(() => loadDeployResults());
   const [lastUrl, setLastUrl] = useState("");
+  const [soundOn, setSoundOn] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const savedKeyRef = useRef("");
+  const fullVideoRef = useRef<HTMLVideoElement>(null);
+  const formVideoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    if (step !== "wait16" && step !== "wait10") return;
-    const total = step === "wait16" ? 16_000 : 10_000;
+    if (step !== "waitKey" && step !== "waitDeploy") return;
     const start = Date.now();
     const tick = window.setInterval(() => {
-      const p = Math.min(100, ((Date.now() - start) / total) * 100);
+      const p = Math.min(100, ((Date.now() - start) / WAIT_MS) * 100);
       setProgress(p);
       if (p >= 100) {
         window.clearInterval(tick);
-        setStep(step === "wait16" ? "form" : "done");
+        setStep(step === "waitKey" ? "form" : "done");
         setProgress(0);
+        setSoundOn(false);
       }
     }, 100);
     return () => window.clearInterval(tick);
   }, [step]);
+
+  /** Klik di mana saja → nyalakan musik (unmute) */
+  function enableSound(el?: HTMLVideoElement | null) {
+    const v = el || fullVideoRef.current || formVideoRef.current;
+    if (!v) return;
+    v.muted = false;
+    void v.play().catch(() => {
+      /* autoplay policy */
+    });
+    setSoundOn(true);
+  }
 
   function confirmKey() {
     setErr("");
@@ -58,7 +74,7 @@ export function DeployPanel() {
     }
     savedKeyRef.current = keyInput.trim();
     setPremiumSession(true);
-    setStep("wait16");
+    setStep("waitKey");
   }
 
   async function onPickStorage(file: File | null) {
@@ -83,7 +99,7 @@ export function DeployPanel() {
       return;
     }
 
-    setStep("wait10");
+    setStep("waitDeploy");
 
     try {
       const res = await fetch("/api/deploy", {
@@ -123,6 +139,8 @@ export function DeployPanel() {
     }
   }
 
+  const fullSrc = step === "waitDeploy" ? DEPLOY_VIDEO_DEPLOY : DEPLOY_VIDEO_KEY;
+
   return (
     <div className="space-y-4">
       {step === "gate" ? (
@@ -156,16 +174,28 @@ export function DeployPanel() {
         </div>
       ) : null}
 
-      {step === "wait16" || step === "wait10" ? (
-        <div className="fixed inset-0 z-[80] flex flex-col items-center justify-center bg-black">
+      {step === "waitKey" || step === "waitDeploy" ? (
+        <div
+          className="fixed inset-0 z-[80] flex cursor-pointer flex-col items-center justify-center bg-black"
+          onClick={() => enableSound(fullVideoRef.current)}
+          onKeyDown={() => enableSound(fullVideoRef.current)}
+          role="button"
+          tabIndex={0}
+        >
           <video
+            ref={fullVideoRef}
             className="max-h-full max-w-full object-contain"
-            src={DEPLOY_VIDEO}
+            src={fullSrc}
             autoPlay
-            muted
+            muted={!soundOn}
             playsInline
             loop
           />
+          {!soundOn ? (
+            <p className="absolute top-8 rounded-full bg-white/15 px-4 py-1.5 text-xs text-white">
+              Ketuk layar untuk musik
+            </p>
+          ) : null}
           <div className="absolute bottom-10 left-6 right-6">
             <div className="h-1 overflow-hidden rounded-full bg-white/20">
               <div
@@ -173,23 +203,33 @@ export function DeployPanel() {
                 style={{ width: `${progress}%` }}
               />
             </div>
+            <p className="mt-2 text-center text-[11px] text-white/70">
+              {Math.ceil(((100 - progress) / 100) * 28)} dtk
+            </p>
           </div>
         </div>
       ) : null}
 
       {(step === "form" || step === "done") && (
         <div className={cn(shell, "space-y-4")}>
+          {/* Video panjang bulat (pill) — loop terus, klik = musik */}
           <div className="flex justify-center pt-1">
-            <div className="size-28 overflow-hidden rounded-full border-2 border-sky-300 shadow-lg">
+            <button
+              type="button"
+              className="relative h-20 w-full max-w-[16rem] overflow-hidden rounded-full border-2 border-sky-300 shadow-lg"
+              onClick={() => enableSound(formVideoRef.current)}
+              aria-label="Putar musik video"
+            >
               <video
+                ref={formVideoRef}
                 className="size-full object-cover"
-                src={DEPLOY_VIDEO}
+                src={DEPLOY_VIDEO_DEPLOY}
                 autoPlay
-                muted
+                muted={!soundOn}
                 playsInline
                 loop
               />
-            </div>
+            </button>
           </div>
 
           <div className="flex justify-center gap-2">

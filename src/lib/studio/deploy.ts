@@ -1,17 +1,23 @@
-/** Deploy Premium v1.5 — key ZUZUKX_… (tanpa stiker) + hasil lokal */
+/** Deploy Premium v1.5 — key ZUZUKX_… + hasil lokal + video */
 
 export const APP_VERSION = "1.5";
 
-export const DEPLOY_VIDEO =
+/** Video setelah input key (fullscreen 28 detik) — klik layar untuk musik */
+export const DEPLOY_VIDEO_KEY =
   "https://raw.githubusercontent.com/NOVABOTV1F/MUSICPLAYLIST/main/tiktokio.com1791276832_fpiGREmSXwOFVKSZlUUl.mp4";
+
+/** Video saat proses deploy (fullscreen 28 detik) + loop di form */
+export const DEPLOY_VIDEO_DEPLOY =
+  "https://raw.githubusercontent.com/NOVABOTV1F/MUSICPLAYLIST/main/tiktokio.com1792282679_JzpEYDuZKDi1x4KLk8nx.mp4";
+
+/** @deprecated gunakan DEPLOY_VIDEO_KEY / DEPLOY_VIDEO_DEPLOY */
+export const DEPLOY_VIDEO = DEPLOY_VIDEO_KEY;
 
 export const OWNER_WHATSAPP = "085194654911";
 export const OWNER_WA_LINK = `https://wa.me/62${OWNER_WHATSAPP.replace(/^0/, "")}`;
 
-/** Prefix key premium (tanpa emoji/stiker) */
 export const PREMIUM_KEY_PREFIX = "ZUZUKX_";
 
-/** Daftar key premium resmi (buatan owner) — tampil di Admin Panel */
 export const PREMIUM_KEYS: readonly string[] = [
   "ZUZUKX_7K2P9F8D3Z",
   "ZUZUKX_L4M7X2B9V6",
@@ -122,7 +128,7 @@ const PREMIUM_SET = new Set(PREMIUM_KEYS.map((k) => k.toUpperCase()));
 const RESULTS_KEY = "samudra-deploy-results-v15";
 const PREMIUM_SESSION = "samudra-deploy-premium-v15";
 
-export type DeployTarget = "1" | "2" | "3"; // V1 GitHub · V2 Vercel · V3 Cloudflare
+export type DeployTarget = "1" | "2" | "3";
 
 export type DeployResult = {
   id: string;
@@ -133,7 +139,6 @@ export type DeployResult = {
   note?: string;
 };
 
-/** Key valid = ada di daftar resmi ATAU format ZUZUKX_ + 6–20 huruf/angka */
 export function isPremiumKeyFormat(key: string): boolean {
   const k = key.trim().toUpperCase();
   if (PREMIUM_SET.has(k)) return true;
@@ -176,8 +181,7 @@ export function addDeployResult(r: Omit<DeployResult, "id" | "createdAt">) {
     id: `d_${Date.now().toString(36)}`,
     createdAt: Date.now(),
   };
-  const next = [item, ...loadDeployResults()];
-  saveDeployResults(next);
+  saveDeployResults([item, ...loadDeployResults()]);
   return item;
 }
 
