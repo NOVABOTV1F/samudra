@@ -54,7 +54,7 @@ export function StudioApp() {
   const chat = useStudioStore(selectActiveChat);
 
   const [draft, setDraft] = useState("");
-  const [aiVersion, setAiVersion] = useState<ImageVersion>("2");
+  const [aiVersion, setAiVersion] = useState<ImageVersion>("1");
   const [navOpen, setNavOpen] = useState(false);
   const [dockOpen, setDockOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -69,7 +69,8 @@ export function StudioApp() {
       setAnnounce(localStorage.getItem("samudra-announce") ?? "");
       const s = loadSettings();
       applyTheme(s.theme);
-      if (s.preferProvider === "gemini") setAiVersion("1");
+      // V1 = DeepSeek (FreeModel), V2 = Groq
+      if (s.preferProvider === "deepseek" || s.preferProvider === "gemini") setAiVersion("1");
       if (s.preferProvider === "groq") setAiVersion("2");
     } catch {
       /* */
@@ -129,7 +130,8 @@ export function StudioApp() {
       }
 
       const settings = loadSettings();
-      const provider = aiVersion === "1" ? "gemini" : "groq";
+      // V1 → DeepSeek FreeModel · V2 → Groq
+      const provider = aiVersion === "1" ? "deepseek" : "groq";
 
       const history =
         useStudioStore
@@ -165,12 +167,11 @@ export function StudioApp() {
         const spilled = spillToFile(reply.text);
         if (spilled) downloadText(spilled.filename, spilled.full, "text/markdown;charset=utf-8");
         assembled = spilled?.preview ?? reply.text;
+        const errMsg = cloudErr instanceof Error ? cloudErr.message : "gagal";
         patchMessage(conversationId, assistantId, {
           content:
             assembled +
-            (cloudErr instanceof Error
-              ? `\n\n_Catatan: cloud (${provider}) — ${cloudErr.message}_`
-              : ""),
+            `\n\n_Catatan: cloud (${provider}) — ${errMsg}. Pastikan FREEMODEL_API_KEY (fm_…) di Cloudflare secrets + deploy ulang._`,
           pathway: reply.pathway,
         });
       }
@@ -263,7 +264,7 @@ export function StudioApp() {
                 {chat?.title ?? "Ocean Intelligence"}
               </p>
               <span className="hidden rounded-full bg-tide px-2.5 py-1 font-mono text-[10px] uppercase tracking-wide text-mist md:inline">
-                {aiVersion === "1" ? "V1 Gemini" : "V2 Groq"} · v{APP_VERSION}
+                {aiVersion === "1" ? "V1 DeepSeek" : "V2 Groq"} · v{APP_VERSION}
               </span>
               <div className="ml-auto flex items-center gap-1">
                 <SettingsButton open={settingsOpen} onOpenChange={setSettingsOpen} />
@@ -426,7 +427,7 @@ function EmptyState({
   let welcome =
     "Ocean Intelligence v" +
     APP_VERSION +
-    " — chat, coding studio, musik. Key AI di server Cloudflare.";
+    " — V1 DeepSeek · V2 Groq. Key: FREEMODEL_API_KEY (fm_…) di Cloudflare.";
   try {
     welcome = localStorage.getItem("samudra-welcome") || welcome;
   } catch {

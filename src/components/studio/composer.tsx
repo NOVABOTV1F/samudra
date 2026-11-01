@@ -47,7 +47,7 @@ export function Composer({
   return (
     <div className="mx-auto w-full max-w-3xl px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 md:px-4">
       <p className="mb-1.5 px-1 text-[11px] text-mist">
-        V1 = Gemini · V2 = Groq · otak lokal jika tanpa key
+        V1 = DeepSeek (FreeModel) · V2 = Groq · butuh key di Cloudflare
       </p>
       <div className="rounded-2xl bg-tide/90 p-2 shadow-[var(--shadow-border)]">
         <Textarea
