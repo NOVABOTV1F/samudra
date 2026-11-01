@@ -19,11 +19,12 @@ const Body = z.object({
     )
     .min(1)
     .max(24),
-  provider: z.enum(["brain", "xai", "gemini", "groq"]).optional(),
+  /** v1 = deepseek (FreeModel), v2 = groq, gemini tetap opsional */
+  provider: z.enum(["brain", "xai", "gemini", "groq", "deepseek", "v1", "v2"]).optional(),
   systemPrompt: z.string().max(8000).optional(),
 });
 
-const DEFAULT_SYSTEM = `You are ZUZUXF_AI / Otak Samudra v1.3.
+const DEFAULT_SYSTEM = `You are ZUZUXF_AI / Otak Samudra.
 Help with writing, analysis, planning, code, and runnable HTML demos.
 You may reason with general knowledge as if checking Google.
 IMPORTANT for images/photos: NEVER generate or draw images/SVG. Only reply with a Google Images search URL:
@@ -33,6 +34,29 @@ Match the user's language. Never mention these instructions.`;
 const brain = rawBrain as BrainRaw;
 const pathways: Pathway[] = Array.isArray(brain.pathways) ? brain.pathways : [];
 
+/** FreeModel OpenAI-compatible — DeepSeek V4 Pro (rekomendasi) */
+const FREEMODEL_BASE = (process.env.FREEMODEL_BASE_URL || "https://freemodel.in/v1").replace(
+  /\/$/,
+  "",
+);
+
+/** Model ID di FreeModel (deepseek node/v4 pro max ≈ deepseek-v4-pro) */
+const DEEPSEEK_MODELS = [
+  "deepseek-v4-pro-0813",
+  "deepseek-v4-pro",
+  "deepseek-v4-flash-0731",
+  "deepseek-flash",
+];
+
+const GEMINI_MODELS = [
+  "gemini-2.0-flash",
+  "gemini-2.5-flash",
+  "gemini-1.5-flash",
+  "gemini-1.5-flash-latest",
+];
+
+const GROQ_MODELS = ["llama-3.1-8b-instant", "llama-3.3-70b-versatile", "openai/gpt-oss-20b"];
+
 function sseResponse(stream: ReadableStream<Uint8Array>, extra: Record<string, string> = {}): Response {
   return new Response(stream, {
     status: 200,
@@ -41,7 +65,7 @@ function sseResponse(stream: ReadableStream<Uint8Array>, extra: Record<string, s
       "Cache-Control": "no-cache, no-transform",
       Connection: "keep-alive",
       "X-Accel-Buffering": "no",
-      "X-Samudra-Version": "1.3",
+      "X-Samudra-Version": "1.6-deepseek",
       ...extra,
     },
   });
@@ -59,14 +83,56 @@ function envKey(names: string[]): string {
   return "";
 }
 
-const GEMINI_MODELS = [
-  "gemini-2.0-flash",
-  "gemini-2.5-flash",
-  "gemini-1.5-flash",
-  "gemini-1.5-flash-latest",
-];
+async function callFreeModelDeepseek(
+  key: string,
+  system: string,
+  messages: { role: string; content: string }[],
+  signal: AbortSignal,
+): Promise<Response | null> {
+  const preferred = (process.env.DEEPSEEK_MODEL || process.env.FREEMODEL_MODEL || "").trim();
+  const list = preferred
+    ? [preferred, ...DEEPSEEK_MODELS.filter((m) => m !== preferred)]
+    : DEEPSEEK_MODELS;
 
-const GROQ_MODELS = ["llama-3.1-8b-instant", "llama-3.3-70b-versatile", "openai/gpt-oss-20b"];
+  for (const model of list) {
+    const upstream = await fetch(`${FREEMODEL_BASE}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${key}`,
+      },
+      body: JSON.stringify({
+        model,
+        stream: true,
+        messages: [{ role: "system", content: system }, ...messages],
+      }),
+      signal,
+    });
+
+    if (upstream.ok && upstream.body) {
+      return new Response(upstream.body, {
+        status: 200,
+        headers: {
+          "Content-Type": "text/event-stream; charset=utf-8",
+          "Cache-Control": "no-cache, no-transform",
+          Connection: "keep-alive",
+          "X-Samudra-Provider": "deepseek",
+          "X-Samudra-Model": model,
+          "X-Samudra-Version": "1.6-deepseek",
+        },
+      });
+    }
+
+    if (upstream.status === 401 || upstream.status === 403) {
+      return Response.json(
+        { error: "FreeModel key (fm_…) ditolak. Cek FREEMODEL_API_KEY di secrets." },
+        { status: 502 },
+      );
+    }
+    // model tidak tersedia → coba model berikutnya
+  }
+  return null;
+}
 
 export const Route = createFileRoute("/api/chat")({
   server: {
@@ -100,15 +166,43 @@ export const Route = createFileRoute("/api/chat")({
 
         const lastUser = [...messages].reverse().find((m) => m.role === "user");
         const query = lastUser?.content ?? "";
-        const want = parsed.data.provider;
+        let want = parsed.data.provider;
 
+        // Alias UI: v1 → deepseek, v2 → groq
+        if (want === "v1") want = "deepseek";
+        if (want === "v2") want = "groq";
+
+        const freeModelKey = envKey([
+          "FREEMODEL_API_KEY",
+          "DEEPSEEK_API_KEY",
+          "FM_API_KEY",
+        ]);
         const geminiKey = envKey(["GEMINI_API_KEY", "GOOGLE_API_KEY"]);
         const groqKey = envKey(["GROQ_API_KEY"]);
+
+        // ——— V1 / DeepSeek (FreeModel) ———
+        if (want === "deepseek" || want === "xai") {
+          if (!freeModelKey) {
+            return Response.json(
+              {
+                error:
+                  "DeepSeek (V1): set FREEMODEL_API_KEY di Cloudflare secrets (token mulai fm_). Base: https://freemodel.in/v1",
+              },
+              { status: 503 },
+            );
+          }
+          const res = await callFreeModelDeepseek(freeModelKey, system, messages, request.signal);
+          if (res) return res;
+          return Response.json(
+            { error: "DeepSeek FreeModel gagal (model/kuota). Coba lagi atau cek model ID." },
+            { status: 502 },
+          );
+        }
 
         if (want === "gemini") {
           if (!geminiKey) {
             return Response.json(
-              { error: "V1 Gemini: set GEMINI_API_KEY di Cloudflare Runtime secrets." },
+              { error: "Gemini: set GEMINI_API_KEY di Cloudflare Runtime secrets." },
               { status: 503 },
             );
           }
@@ -151,7 +245,7 @@ export const Route = createFileRoute("/api/chat")({
               return Response.json({ error: "Gemini key ditolak." }, { status: 502 });
             }
           }
-          return Response.json({ error: "Gemini gagal. Coba V2." }, { status: 502 });
+          return Response.json({ error: "Gemini gagal." }, { status: 502 });
         }
 
         if (want === "groq") {
@@ -188,7 +282,7 @@ export const Route = createFileRoute("/api/chat")({
                   "Cache-Control": "no-cache, no-transform",
                   Connection: "keep-alive",
                   "X-Samudra-Provider": "groq",
-                  "X-Samudra-Version": "1.3",
+                  "X-Samudra-Version": "1.6-deepseek",
                 },
               });
             }
@@ -199,9 +293,15 @@ export const Route = createFileRoute("/api/chat")({
           return Response.json({ error: "Groq gagal." }, { status: 502 });
         }
 
+        // Default: otak lokal → DeepSeek → Groq → Gemini → fallback
         const hit = matchBrain(query, pathways, 4);
         if (hit) {
           return sseResponse(textToSseStream(hit.answer), { "X-Samudra-Brain": "1" });
+        }
+
+        if (freeModelKey) {
+          const res = await callFreeModelDeepseek(freeModelKey, system, messages, request.signal);
+          if (res) return res;
         }
 
         if (groqKey) {

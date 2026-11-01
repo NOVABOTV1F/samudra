@@ -265,9 +265,12 @@ export function SettingsPanel({
             {tab === "keys" ? (
               <div className="space-y-3">
                 <div className="rounded-xl bg-lagoon/80 px-3 py-2 text-xs leading-relaxed text-mist">
-                  <strong className="text-foam">API key tidak diisi user.</strong>
+                  <strong className="text-foam">API key tidak diisi user di web.</strong>
                   <br />
-                  Cloudflare Runtime secrets: GEMINI_API_KEY, GROQ_API_KEY, GITHUB_TOKEN, dll.
+                  Cloudflare secrets: <code className="text-foam">FREEMODEL_API_KEY</code> (token{" "}
+                  <code className="text-foam">fm_…</code> dari freemodel.in).
+                  <br />
+                  V1 = DeepSeek Pro · V2 = Groq (opsional). Base: https://freemodel.in/v1
                 </div>
                 <p className="text-xs text-mist">
                   Lisensi: <strong className="text-foam">{accessLabel}</strong>
