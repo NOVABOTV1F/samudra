@@ -1,11 +1,30 @@
 export type ChatTurn = { role: "user" | "assistant"; content: string };
 
-/** Key Gemini/Groq hanya dari Cloudflare env — client tidak mengirim key */
+export type ChatProvider =
+  | "brain"
+  | "deepseek"
+  | "gemini"
+  | "groq"
+  | "xai"
+  | "v1"
+  | "v2";
+
+export type SystemStatus = {
+  version: string;
+  deepseek: boolean;
+  groq: boolean;
+  gemini: boolean;
+  baseUrl: string;
+  model: string;
+  time: string;
+};
+
+/** Key hanya dari Cloudflare env — client tidak mengirim key */
 export async function streamChat(options: {
   messages: ChatTurn[];
   signal: AbortSignal;
   onDelta: (chunk: string) => void;
-  provider?: "brain" | "gemini" | "groq" | "xai";
+  provider?: ChatProvider;
   systemPrompt?: string;
 }) {
   const response = await fetch("/api/chat", {
@@ -57,8 +76,18 @@ export async function streamChat(options: {
           options.onDelta(token);
         }
       } catch {
-        /* ignore */
+        /* ignore non-json sse */
       }
     }
+  }
+}
+
+export async function fetchSystemStatus(): Promise<SystemStatus | null> {
+  try {
+    const r = await fetch("/api/status", { cache: "no-store" });
+    if (!r.ok) return null;
+    return (await r.json()) as SystemStatus;
+  } catch {
+    return null;
   }
 }

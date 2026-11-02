@@ -16,6 +16,7 @@ export function Composer({
   busy,
   onSend,
   onStop,
+  statusLine,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -24,6 +25,7 @@ export function Composer({
   busy: boolean;
   onSend: () => void;
   onStop: () => void;
+  statusLine?: string;
 }) {
   const ref = useRef<HTMLTextAreaElement>(null);
 
@@ -43,13 +45,15 @@ export function Composer({
   }
 
   const canSend = value.trim().length > 0 && !busy;
+  const left = MAX - value.length;
 
   return (
     <div className="mx-auto w-full max-w-3xl px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 md:px-4">
-      <p className="mb-1.5 px-1 text-[11px] text-mist">
-        V1 = DeepSeek (FreeModel) · V2 = Groq · butuh key di Cloudflare
+      <p className="mb-1.5 px-1 text-[11px] leading-snug text-mist">
+        {statusLine ||
+          "V1 = DeepSeek Pro · V2 = Groq · AI bisa coding, website, analisis, apa saja"}
       </p>
-      <div className="rounded-2xl bg-tide/90 p-2 shadow-[var(--shadow-border)]">
+      <div className="rounded-2xl bg-tide/90 p-2 shadow-[var(--shadow-border)] ring-1 ring-border/60">
         <Textarea
           ref={ref}
           rows={1}
@@ -57,7 +61,7 @@ export function Composer({
           maxLength={MAX}
           onChange={(event) => onChange(event.target.value)}
           onKeyDown={onKeyDown}
-          placeholder="Tanya apa saja… (gambar dideteksi otomatis dari teks)"
+          placeholder="Tanya apa saja… coding, bisnis, belajar, website…"
           aria-label="Pesan"
           className="min-h-12 max-h-52 px-3 py-2.5"
         />
@@ -67,10 +71,11 @@ export function Composer({
               type="button"
               onClick={() => onAiVersion("1")}
               className={cn(
-                "inline-flex h-9 items-center rounded-lg px-3 text-xs font-medium",
+                "inline-flex h-9 items-center rounded-lg px-3 text-xs font-medium transition-colors",
                 aiVersion === "1" ? "bg-accent/25 text-foam ring-1 ring-accent/40" : "text-mist",
               )}
               aria-pressed={aiVersion === "1"}
+              title="DeepSeek via FreeModel"
             >
               V1
             </button>
@@ -78,14 +83,25 @@ export function Composer({
               type="button"
               onClick={() => onAiVersion("2")}
               className={cn(
-                "inline-flex h-9 items-center rounded-lg px-3 text-xs font-medium",
+                "inline-flex h-9 items-center rounded-lg px-3 text-xs font-medium transition-colors",
                 aiVersion === "2" ? "bg-accent/25 text-foam ring-1 ring-accent/40" : "text-mist",
               )}
               aria-pressed={aiVersion === "2"}
+              title="Groq cepat"
             >
               V2
             </button>
           </div>
+
+          <span
+            className={cn(
+              "ml-1 font-mono text-[10px] tabular-nums",
+              left < 500 ? "text-amber-600" : "text-mist/70",
+            )}
+            title="Sisa karakter"
+          >
+            {left.toLocaleString("id-ID")}
+          </span>
 
           <span className="ml-auto" />
 
