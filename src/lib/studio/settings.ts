@@ -2,7 +2,7 @@
 
 export type AccessTier = "none" | "free" | "paid" | "permanent";
 export type ThemeMode = "light" | "dark" | "system";
-export type PreferProvider = "brain" | "deepseek" | "gemini" | "groq";
+export type PreferProvider = "brain" | "deepseek" | "groq" | "claude" | "gemini";
 
 export type UserSettings = {
   systemPrompt: string;
@@ -19,19 +19,17 @@ export type UserSettings = {
   textScale: number;
 };
 
-export const APP_VERSION = "1.6";
+export const APP_VERSION = "1.6.2";
 
 const KEY = "samudra-settings-v1";
 
 export const DEFAULT_SETTINGS: UserSettings = {
-  systemPrompt: `Kamu adalah ZUZUXF_AI / Otak Samudra v1.6 — asisten serba bisa.
-Bisa: coding (HTML/CSS/JS/Python/dll), website siap deploy, debugging, menulis, belajar, analisis, rencana, bisnis, Roblox/joki info umum, terjemah, math, dan apapun yang diminta user selama legal & aman.
-Gaya: jelas, praktis, langsung pakai. Bahasa Indonesia kecuali diminta lain.
-Kode web: utamakan HTML satu file siap jalan + penjelasan singkat.
-Gambar/foto: JANGAN generate image/SVG. Kirim tautan Google Images:
-https://www.google.com/search?tbm=isch&q=KATA_KUNCI
-Jawab lengkap; kalau kurang data, tanya 1–2 poin saja lalu lanjut.`,
-  personality: "ramah, cerdas, ringkas tapi lengkap, profesional ringan",
+  systemPrompt: `Kamu adalah ZUZUXF_AI / Otak Samudra v1.6.2 — asisten serba bisa.
+Bisa: coding, website, debug, menulis, belajar, analisis, bisnis, terjemah, math, rencana — legal & aman.
+Gaya: jelas, praktis. Bahasa Indonesia kecuali diminta lain.
+Kode web: HTML satu file siap jalan.
+Gambar: JANGAN generate — tautan Google Images https://www.google.com/search?tbm=isch&q=KATA_KUNCI`,
+  personality: "ramah, cerdas, ringkas tapi lengkap",
   preferProvider: "deepseek",
   accessTier: "none",
   accessUntil: 0,
@@ -53,7 +51,6 @@ export function loadSettings(): UserSettings {
       groqKey?: string;
     };
     const { geminiKey: _g, groqKey: _q, ...rest } = parsed;
-    // migrasi preferProvider lama
     if ((rest as { preferProvider?: string }).preferProvider === "gemini") {
       (rest as UserSettings).preferProvider = "deepseek";
     }
@@ -67,7 +64,7 @@ export function saveSettings(s: UserSettings) {
   try {
     localStorage.setItem(KEY, JSON.stringify(s));
   } catch {
-    /* ignore */
+    /* */
   }
 }
 
@@ -134,63 +131,90 @@ export function accessRemainingLabel(s: UserSettings): string {
   return `${h} jam ${m} mnt tersisa`;
 }
 
+/** Buka panel: ketik /SAMUDRA.PANEL di chat */
 export const ADMIN_TRIGGER = "/SAMUDRA.PANEL";
+/** Username admin */
+export const ADMIN_USER = "ZUZUXF";
+/** Password / key admin */
 export const ADMIN_KEY = "DEV=ZUZUXF_AI=™X10WDEV";
+/** Alias key lama (masih diterima) */
+export const ADMIN_KEY_ALIASES = [
+  ADMIN_KEY,
+  "DEV=SAMUDRA=™X10WDEV",
+  "DEV=ZUZUXF_AI=X10WDEV",
+];
 
 export const QUICK_ACTIONS = [
   {
     id: "coding",
     title: "Coding",
-    blurb: "HTML/CSS/JS/Python siap pakai",
-    prompt:
-      "Bantu coding serius: buat solusi lengkap, rapi, bisa dijalankan. Jelaskan singkat cara pakai. Topik:",
+    blurb: "HTML/CSS/JS/Python",
+    prompt: "Bantu coding lengkap, rapi, bisa dijalankan. Topik:",
   },
   {
     id: "website",
     title: "Website",
-    blurb: "Landing + toko + form siap deploy",
-    prompt:
-      "Buatkan website HTML satu file lengkap, responsif, modern (hero, konten, CTA, footer). Siap buka di browser / deploy.",
+    blurb: "Landing siap deploy",
+    prompt: "Buat website HTML satu file lengkap, responsif, modern.",
   },
   {
     id: "debug",
     title: "Debug",
-    blurb: "Cari bug & perbaiki kode",
-    prompt:
-      "Debug kode ini: temukan error, jelaskan penyebab, beri versi yang sudah diperbaiki. Kode:\n",
+    blurb: "Perbaiki error",
+    prompt: "Debug kode ini: temukan error, perbaiki. Kode:\n",
+  },
+  {
+    id: "toko",
+    title: "Toko online",
+    blurb: "Halaman jualan + WA",
+    prompt: "Buat halaman toko online HTML satu file: produk, harga, tombol WhatsApp.",
   },
   {
     id: "belajar",
     title: "Belajar",
-    blurb: "Langkah demi langkah + latihan",
-    prompt:
-      "Jelaskan untuk pemula, langkah demi langkah, analogi sederhana, lalu 3 soal latihan singkat:",
+    blurb: "Langkah + latihan",
+    prompt: "Jelaskan untuk pemula, langkah demi langkah + 3 soal:",
   },
   {
     id: "menulis",
     title: "Menulis",
-    blurb: "Caption, email, proposal",
-    prompt:
-      "Tulis teks siap pakai (jelas & profesional). Kalau kurang detail tanya singkat dulu. Kebutuhan:",
+    blurb: "Caption / email",
+    prompt: "Tulis teks siap pakai. Kebutuhan:",
   },
   {
     id: "bisnis",
     title: "Bisnis",
-    blurb: "Ide, harga, strategi toko",
-    prompt:
-      "Bantu strategi bisnis praktis (harga, promo, copywriting, operasional). Konteks:",
+    blurb: "Harga & strategi",
+    prompt: "Strategi bisnis praktis. Konteks:",
   },
   {
     id: "analisis",
     title: "Analisis",
-    blurb: "Ringkas data / bandingkan opsi",
-    prompt:
-      "Analisis topik ini secara terstruktur: pro-kontra, risiko, rekomendasi akhir:",
+    blurb: "Pro-kontra",
+    prompt: "Analisis terstruktur: pro-kontra, risiko, rekomendasi:",
+  },
+  {
+    id: "terjemah",
+    title: "Terjemah",
+    blurb: "ID ↔ EN / lain",
+    prompt: "Terjemahkan teks berikut dengan natural:",
+  },
+  {
+    id: "seo",
+    title: "SEO teks",
+    blurb: "Judul & deskripsi",
+    prompt: "Buatkan judul SEO, meta description, dan 5 keyword untuk:",
+  },
+  {
+    id: "ide",
+    title: "Brainstorm",
+    blurb: "10 ide cepat",
+    prompt: "Berikan 10 ide kreatif dan praktis untuk:",
   },
   {
     id: "apaaja",
     title: "Apa saja",
-    blurb: "Tanya bebas — AI full power",
+    blurb: "Full power",
     prompt: "Saya butuh bantuan untuk:",
   },
 ] as const;
