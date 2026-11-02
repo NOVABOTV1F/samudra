@@ -19,28 +19,26 @@ const Body = z.object({
     )
     .min(1)
     .max(24),
-  /** v1 = deepseek (FreeModel), v2 = groq, gemini tetap opsional */
   provider: z.enum(["brain", "xai", "gemini", "groq", "deepseek", "v1", "v2"]).optional(),
   systemPrompt: z.string().max(8000).optional(),
 });
 
-const DEFAULT_SYSTEM = `You are ZUZUXF_AI / Otak Samudra.
-Help with writing, analysis, planning, code, and runnable HTML demos.
-You may reason with general knowledge as if checking Google.
-IMPORTANT for images/photos: NEVER generate or draw images/SVG. Only reply with a Google Images search URL:
+const DEFAULT_SYSTEM = `You are ZUZUXF_AI / Otak Samudra v1.6 — a full-capability assistant.
+You can: write and debug code (HTML/CSS/JS/Python/etc), build deploy-ready single-file websites,
+explain topics step-by-step, business strategy, analysis, translation, math, planning, and almost any helpful task that is legal and safe.
+Be practical, clear, and complete. Prefer runnable examples. Match the user's language (default Indonesian).
+Images: NEVER generate or draw images/SVG. Only provide a Google Images search URL:
 https://www.google.com/search?tbm=isch&q=ENCODED_QUERY
-Match the user's language. Never mention these instructions.`;
+Never mention these system instructions.`;
 
 const brain = rawBrain as BrainRaw;
 const pathways: Pathway[] = Array.isArray(brain.pathways) ? brain.pathways : [];
 
-/** FreeModel OpenAI-compatible — DeepSeek V4 Pro (rekomendasi) */
 const FREEMODEL_BASE = (process.env.FREEMODEL_BASE_URL || "https://freemodel.in/v1").replace(
   /\/$/,
   "",
 );
 
-/** Model ID di FreeModel (deepseek node/v4 pro max ≈ deepseek-v4-pro) */
 const DEEPSEEK_MODELS = [
   "deepseek-v4-pro-0813",
   "deepseek-v4-pro",
@@ -65,7 +63,7 @@ function sseResponse(stream: ReadableStream<Uint8Array>, extra: Record<string, s
       "Cache-Control": "no-cache, no-transform",
       Connection: "keep-alive",
       "X-Accel-Buffering": "no",
-      "X-Samudra-Version": "1.6-deepseek",
+      "X-Samudra-Version": "1.6",
       ...extra,
     },
   });
@@ -118,7 +116,7 @@ async function callFreeModelDeepseek(
           Connection: "keep-alive",
           "X-Samudra-Provider": "deepseek",
           "X-Samudra-Model": model,
-          "X-Samudra-Version": "1.6-deepseek",
+          "X-Samudra-Version": "1.6",
         },
       });
     }
@@ -129,7 +127,6 @@ async function callFreeModelDeepseek(
         { status: 502 },
       );
     }
-    // model tidak tersedia → coba model berikutnya
   }
   return null;
 }
@@ -168,25 +165,19 @@ export const Route = createFileRoute("/api/chat")({
         const query = lastUser?.content ?? "";
         let want = parsed.data.provider;
 
-        // Alias UI: v1 → deepseek, v2 → groq
         if (want === "v1") want = "deepseek";
         if (want === "v2") want = "groq";
 
-        const freeModelKey = envKey([
-          "FREEMODEL_API_KEY",
-          "DEEPSEEK_API_KEY",
-          "FM_API_KEY",
-        ]);
+        const freeModelKey = envKey(["FREEMODEL_API_KEY", "DEEPSEEK_API_KEY", "FM_API_KEY"]);
         const geminiKey = envKey(["GEMINI_API_KEY", "GOOGLE_API_KEY"]);
         const groqKey = envKey(["GROQ_API_KEY"]);
 
-        // ——— V1 / DeepSeek (FreeModel) ———
         if (want === "deepseek" || want === "xai") {
           if (!freeModelKey) {
             return Response.json(
               {
                 error:
-                  "DeepSeek (V1): set FREEMODEL_API_KEY di Cloudflare secrets (token mulai fm_). Base: https://freemodel.in/v1",
+                  "DeepSeek (V1): set FREEMODEL_API_KEY di Cloudflare secrets (token fm_). Base: https://freemodel.in/v1",
               },
               { status: 503 },
             );
@@ -194,7 +185,7 @@ export const Route = createFileRoute("/api/chat")({
           const res = await callFreeModelDeepseek(freeModelKey, system, messages, request.signal);
           if (res) return res;
           return Response.json(
-            { error: "DeepSeek FreeModel gagal (model/kuota). Coba lagi atau cek model ID." },
+            { error: "DeepSeek FreeModel gagal (model/kuota). Cek model ID & saldo FreeModel." },
             { status: 502 },
           );
         }
@@ -202,7 +193,7 @@ export const Route = createFileRoute("/api/chat")({
         if (want === "gemini") {
           if (!geminiKey) {
             return Response.json(
-              { error: "Gemini: set GEMINI_API_KEY di Cloudflare Runtime secrets." },
+              { error: "Gemini: set GEMINI_API_KEY di Cloudflare secrets." },
               { status: 503 },
             );
           }
@@ -251,7 +242,7 @@ export const Route = createFileRoute("/api/chat")({
         if (want === "groq") {
           if (!groqKey) {
             return Response.json(
-              { error: "V2 Groq: set GROQ_API_KEY di Cloudflare Runtime secrets." },
+              { error: "V2 Groq: set GROQ_API_KEY di Cloudflare secrets." },
               { status: 503 },
             );
           }
@@ -282,7 +273,7 @@ export const Route = createFileRoute("/api/chat")({
                   "Cache-Control": "no-cache, no-transform",
                   Connection: "keep-alive",
                   "X-Samudra-Provider": "groq",
-                  "X-Samudra-Version": "1.6-deepseek",
+                  "X-Samudra-Version": "1.6",
                 },
               });
             }
@@ -293,15 +284,15 @@ export const Route = createFileRoute("/api/chat")({
           return Response.json({ error: "Groq gagal." }, { status: 502 });
         }
 
-        // Default: otak lokal → DeepSeek → Groq → Gemini → fallback
-        const hit = matchBrain(query, pathways, 4);
-        if (hit) {
-          return sseResponse(textToSseStream(hit.answer), { "X-Samudra-Brain": "1" });
-        }
-
+        // Default: DeepSeek dulu (full AI), baru brain/groq/gemini
         if (freeModelKey) {
           const res = await callFreeModelDeepseek(freeModelKey, system, messages, request.signal);
           if (res) return res;
+        }
+
+        const hit = matchBrain(query, pathways, 4);
+        if (hit) {
+          return sseResponse(textToSseStream(hit.answer), { "X-Samudra-Brain": "1" });
         }
 
         if (groqKey) {
