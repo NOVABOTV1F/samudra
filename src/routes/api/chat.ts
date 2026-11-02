@@ -25,9 +25,9 @@ const Body = z.object({
   systemPrompt: z.string().max(8000).optional(),
 });
 
-const DEFAULT_SYSTEM = `You are ZUZUXF_AI / Otak Samudra v1.6.5.
-Help with legal tasks. Match user language. Prefer single-file HTML for web.
-Images: Google Images URL only.`;
+const DEFAULT_SYSTEM = `You are ZUZUXF_AI / Otak Samudra v1.6.6.
+Help with legal tasks. Match user language (default Indonesian). Prefer short clear answers unless user asks for detail.
+Prefer single-file HTML for web. Images: Google Images URL only.`;
 
 const brain = rawBrain as BrainRaw;
 const pathways: Pathway[] = Array.isArray(brain.pathways) ? brain.pathways : [];
@@ -41,7 +41,13 @@ const DEEPSEEK_MODELS = ["deepseek-v4.1-flash", "deepseek-v4-flash-0731", "deeps
 
 const CLAUDE_BASE = (process.env.CLAUDE_BASE_URL || "https://cc.freemodel.dev").replace(/\/$/, "");
 const CLAUDE_MODELS = ["claude-mythos-preview", "claude-mythos", "claude-sonnet-4"];
-const GROQ_MODELS = ["llama-3.1-8b-instant", "llama-3.3-70b-versatile"];
+
+const GROQ_MODELS = [
+  "llama-3.1-8b-instant",
+  "llama-3.3-70b-versatile",
+  "gemma2-9b-it",
+  "openai/gpt-oss-20b",
+];
 
 function envKey(names: string[]): string {
   for (const n of names) {
@@ -55,12 +61,10 @@ function envKey(names: string[]): string {
   return "";
 }
 
-/** V1 only */
 function v1Key() {
   return envKey(["FREEMODEL_API_KEY", "DEEPSEEK_API_KEY", "FM_API_KEY"]);
 }
 
-/** V3 only — nama terpisah biar tidak tabrakan V1 */
 function v3Key() {
   return envKey(["FREEMODELCLAUDE", "FREEMODEL_CLAUDE", "FE_OA_KEY"]);
 }
@@ -78,39 +82,50 @@ async function openaiStream(
     ? [`${base}/chat/completions`]
     : [`${base}/v1/chat/completions`, `${base}/chat/completions`];
 
+  let lastErr = "";
   for (const url of paths) {
-    const upstream = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${key}`,
-      },
-      body: JSON.stringify({
-        model,
-        stream: true,
-        messages: [{ role: "system", content: system }, ...messages],
-      }),
-      signal,
-    });
-    if (upstream.ok && upstream.body) {
-      return new Response(upstream.body, {
-        status: 200,
+    try {
+      const upstream = await fetch(url, {
+        method: "POST",
         headers: {
-          "Content-Type": "text/event-stream; charset=utf-8",
-          "Cache-Control": "no-cache, no-transform",
-          "X-Samudra-Provider": providerTag,
-          "X-Samudra-Model": model,
-          "X-Samudra-Version": "1.6.5",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${key}`,
         },
+        body: JSON.stringify({
+          model,
+          stream: true,
+          temperature: 0.7,
+          messages: [{ role: "system", content: system }, ...messages],
+        }),
+        signal,
       });
-    }
-    if (upstream.status === 401 || upstream.status === 403) {
-      return Response.json(
-        { error: `Key ditolak (${providerTag}). Cek secret di Cloudflare.` },
-        { status: 502 },
-      );
+
+      if (upstream.ok && upstream.body) {
+        return new Response(upstream.body, {
+          status: 200,
+          headers: {
+            "Content-Type": "text/event-stream; charset=utf-8",
+            "Cache-Control": "no-cache, no-transform",
+            "X-Samudra-Provider": providerTag,
+            "X-Samudra-Model": model,
+            "X-Samudra-Version": "1.6.6",
+          },
+        });
+      }
+
+      const t = await upstream.text().catch(() => "");
+      lastErr = `${upstream.status} ${t.slice(0, 180)}`;
+      if (upstream.status === 401 || upstream.status === 403) {
+        return Response.json(
+          { error: `Key ditolak (${providerTag}). Cek secret Cloudflare.` },
+          { status: 502 },
+        );
+      }
+    } catch (e) {
+      lastErr = e instanceof Error ? e.message : "network";
     }
   }
+  console.warn("[chat]", providerTag, model, lastErr);
   return null;
 }
 
@@ -136,6 +151,7 @@ export const Route = createFileRoute("/api/chat")({
         if (!messages.length) {
           return Response.json({ error: "Tulis pesan dulu." }, { status: 400 });
         }
+
         const lastUser = [...messages].reverse().find((m) => m.role === "user");
         const query = lastUser?.content ?? "";
         let want = parsed.data.provider;
@@ -150,7 +166,7 @@ export const Route = createFileRoute("/api/chat")({
         if (want === "deepseek" || want === "xai") {
           if (!k1) {
             return Response.json(
-              { error: "V1: set FREEMODEL_API_KEY (Edit secret yang sudah ada)." },
+              { error: "V1: set FREEMODEL_API_KEY di Cloudflare (Edit, jangan Add dobel)." },
               { status: 503 },
             );
           }
@@ -170,7 +186,10 @@ export const Route = createFileRoute("/api/chat")({
             );
             if (res) return res;
           }
-          return Response.json({ error: "DeepSeek gagal." }, { status: 502 });
+          return Response.json(
+            { error: "DeepSeek gagal. Cek model/kredit FreeModel." },
+            { status: 502 },
+          );
         }
 
         if (want === "claude") {
@@ -178,7 +197,7 @@ export const Route = createFileRoute("/api/chat")({
             return Response.json(
               {
                 error:
-                  "V3: Add secret baru nama FREEMODELCLAUDE (value = key fe_oa_…). Jangan pakai nama FREEMODEL_API_KEY.",
+                  "V3: Add secret FREEMODELCLAUDE (value key fe_oa_…). Nama harus beda dari FREEMODEL_API_KEY.",
               },
               { status: 503 },
             );
@@ -199,39 +218,55 @@ export const Route = createFileRoute("/api/chat")({
             );
             if (res) return res;
           }
-          return Response.json({ error: "Claude V3 gagal." }, { status: 502 });
+          return Response.json({ error: "Claude V3 gagal. Cek FREEMODELCLAUDE." }, { status: 502 });
         }
 
         if (want === "groq") {
           if (!groqKey) {
             return Response.json({ error: "V2: set GROQ_API_KEY." }, { status: 503 });
           }
-          for (const model of GROQ_MODELS) {
-            const upstream = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${groqKey}`,
-              },
-              body: JSON.stringify({
-                model,
-                stream: true,
-                messages: [{ role: "system", content: system }, ...messages],
-              }),
-              signal: request.signal,
-            });
-            if (upstream.ok && upstream.body) {
-              return new Response(upstream.body, {
-                status: 200,
+          const preferred = (process.env.GROQ_MODEL || "").trim();
+          const list = preferred
+            ? [preferred, ...GROQ_MODELS.filter((m) => m !== preferred)]
+            : GROQ_MODELS;
+          let last = "";
+          for (const model of list) {
+            try {
+              const upstream = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                method: "POST",
                 headers: {
-                  "Content-Type": "text/event-stream; charset=utf-8",
-                  "X-Samudra-Provider": "groq",
-                  "X-Samudra-Version": "1.6.5",
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${groqKey}`,
                 },
+                body: JSON.stringify({
+                  model,
+                  stream: true,
+                  messages: [{ role: "system", content: system }, ...messages],
+                }),
+                signal: request.signal,
               });
+              if (upstream.ok && upstream.body) {
+                return new Response(upstream.body, {
+                  status: 200,
+                  headers: {
+                    "Content-Type": "text/event-stream; charset=utf-8",
+                    "X-Samudra-Provider": "groq",
+                    "X-Samudra-Version": "1.6.6",
+                  },
+                });
+              }
+              last = `${upstream.status} ${await upstream.text().then((t) => t.slice(0, 160))}`;
+              if (upstream.status === 401 || upstream.status === 403) {
+                return Response.json({ error: "Groq key ditolak / invalid." }, { status: 502 });
+              }
+            } catch (e) {
+              last = e instanceof Error ? e.message : "err";
             }
           }
-          return Response.json({ error: "Groq gagal." }, { status: 502 });
+          return Response.json(
+            { error: `Groq gagal. ${last || "Cek GROQ_API_KEY & model."}` },
+            { status: 502 },
+          );
         }
 
         if (k1) {
@@ -246,6 +281,7 @@ export const Route = createFileRoute("/api/chat")({
           );
           if (res) return res;
         }
+
         const hit = matchBrain(query, pathways, 4);
         if (hit) {
           return new Response(textToSseStream(hit.answer), {

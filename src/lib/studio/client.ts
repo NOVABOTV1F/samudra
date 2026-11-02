@@ -56,6 +56,8 @@ export async function streamChat(options: {
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
+  let gotVisible = false;
+  let reasoningBuf = "";
 
   while (true) {
     const { done, value } = await reader.read();
@@ -71,14 +73,50 @@ export async function streamChat(options: {
       if (!data || data === "[DONE]") continue;
       try {
         const json = JSON.parse(data) as {
-          choices?: { delta?: { content?: string | null } }[];
+          choices?: {
+            delta?: {
+              content?: string | null;
+              reasoning_content?: string | null;
+              reasoning?: string | null;
+            };
+            message?: { content?: string | null };
+          }[];
+          error?: { message?: string };
         };
-        const token = json.choices?.[0]?.delta?.content;
-        if (typeof token === "string" && token.length > 0) options.onDelta(token);
-      } catch {
-        /* */
+        if (json.error?.message) throw new Error(json.error.message);
+
+        const delta = json.choices?.[0]?.delta;
+        const msgContent = json.choices?.[0]?.message?.content;
+
+        // Utama: content jawaban (bukan reasoning)
+        const content =
+          (typeof delta?.content === "string" && delta.content) ||
+          (typeof msgContent === "string" && msgContent) ||
+          "";
+
+        if (content) {
+          gotVisible = true;
+          options.onDelta(content);
+          continue;
+        }
+
+        // Cadangan: beberapa model hanya kirim reasoning_content
+        const reason =
+          (typeof delta?.reasoning_content === "string" && delta.reasoning_content) ||
+          (typeof delta?.reasoning === "string" && delta.reasoning) ||
+          "";
+        if (reason) {
+          reasoningBuf += reason;
+        }
+      } catch (e) {
+        if (e instanceof Error && e.message && !e.message.includes("JSON")) throw e;
       }
     }
+  }
+
+  // Jika tidak ada content sama sekali tapi ada reasoning → tampilkan
+  if (!gotVisible && reasoningBuf.trim()) {
+    options.onDelta(reasoningBuf.trim());
   }
 }
 

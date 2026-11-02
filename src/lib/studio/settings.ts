@@ -26,12 +26,12 @@ export type UserSettings = {
   showStatusLine: boolean;
 };
 
-export const APP_VERSION = "1.6.5";
+export const APP_VERSION = "1.6.6";
 
 const KEY = "samudra-settings-v1";
 
 export const DEFAULT_SETTINGS: UserSettings = {
-  systemPrompt: `Kamu adalah ZUZUXF_AI / Otak Samudra v1.6.5.
+  systemPrompt: `Kamu adalah ZUZUXF_AI / Otak Samudra v1.6.6.
 Bantu coding, website, debug, menulis, bisnis, belajar — legal & aman.
 Bahasa Indonesia kecuali diminta lain. Kode web: HTML satu file.
 Gambar: hanya tautan Google Images.`,
@@ -159,7 +159,7 @@ export const ADMIN_KEY_ALIASES = [
   "DEV=ZUZUXF_AI=X10WDEV",
 ];
 
-/** ~30 tools — beranda hanya 5 */
+/** ~30 tools total */
 export const QUICK_ACTIONS = [
   { id: "coding", title: "Coding", blurb: "Kode siap jalan", prompt: "Bantu coding lengkap, rapi, bisa dijalankan. Topik:" },
   { id: "website", title: "Website", blurb: "HTML satu file", prompt: "Buat website HTML satu file lengkap, responsif, modern." },
@@ -193,4 +193,5 @@ export const QUICK_ACTIONS = [
   { id: "apaaja", title: "Apa saja", blurb: "Bebas", prompt: "Saya butuh bantuan untuk:" },
 ] as const;
 
+/** Hanya 5 di beranda */
 export const HOME_TOOLS = QUICK_ACTIONS.slice(0, 5);
