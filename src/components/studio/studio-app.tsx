@@ -13,13 +13,15 @@ import { WaveMark } from "@/components/studio/wave-mark";
 import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { think, spillToFile } from "@/lib/brain/think";
-import { streamChat } from "@/lib/studio/client";
+import { fetchSystemStatus, streamChat, type SystemStatus } from "@/lib/studio/client";
 import { downloadText } from "@/lib/studio/files";
 import { extractArtifacts } from "@/lib/studio/parse";
 import {
   ADMIN_TRIGGER,
   APP_VERSION,
+  accessRemainingLabel,
   applyTheme,
+  hasActiveAccess,
   loadSettings,
   QUICK_ACTIONS,
 } from "@/lib/studio/settings";
@@ -60,6 +62,8 @@ export function StudioApp() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const [announce, setAnnounce] = useState("");
+  const [sys, setSys] = useState<SystemStatus | null>(null);
+  const [accessLabel, setAccessLabel] = useState("");
   const abortRef = useRef<AbortController | null>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
 
@@ -69,13 +73,33 @@ export function StudioApp() {
       setAnnounce(localStorage.getItem("samudra-announce") ?? "");
       const s = loadSettings();
       applyTheme(s.theme);
-      // V1 = DeepSeek (FreeModel), V2 = Groq
       if (s.preferProvider === "deepseek" || s.preferProvider === "gemini") setAiVersion("1");
       if (s.preferProvider === "groq") setAiVersion("2");
+      setAccessLabel(accessRemainingLabel(s));
     } catch {
       /* */
     }
   }, [hydrate]);
+
+  // Status key real-time tiap 20 detik
+  useEffect(() => {
+    let alive = true;
+    async function tick() {
+      const st = await fetchSystemStatus();
+      if (alive) setSys(st);
+      try {
+        if (alive) setAccessLabel(accessRemainingLabel(loadSettings()));
+      } catch {
+        /* */
+      }
+    }
+    void tick();
+    const id = window.setInterval(() => void tick(), 20000);
+    return () => {
+      alive = false;
+      window.clearInterval(id);
+    };
+  }, []);
 
   useEffect(() => {
     const node = scrollerRef.current;
@@ -85,6 +109,18 @@ export function StudioApp() {
 
   const busy = Boolean(streamingId);
   const empty = !chat || chat.messages.length === 0;
+
+  const statusLine = useMemo(() => {
+    const bits: string[] = [];
+    bits.push(aiVersion === "1" ? "V1 DeepSeek" : "V2 Groq");
+    if (sys) {
+      if (aiVersion === "1") bits.push(sys.deepseek ? "key ON" : "key OFF — isi FREEMODEL_API_KEY");
+      else bits.push(sys.groq ? "key ON" : "key OFF — isi GROQ_API_KEY");
+      if (sys.model && aiVersion === "1") bits.push(sys.model);
+    }
+    if (accessLabel) bits.push(accessLabel);
+    return bits.join(" · ");
+  }, [aiVersion, sys, accessLabel]);
 
   function ensureChat() {
     if (activeId && chat) return activeId;
@@ -130,7 +166,6 @@ export function StudioApp() {
       }
 
       const settings = loadSettings();
-      // V1 → DeepSeek FreeModel · V2 → Groq
       const provider = aiVersion === "1" ? "deepseek" : "groq";
 
       const history =
@@ -146,6 +181,7 @@ export function StudioApp() {
       const systemPrompt = [
         settings.systemPrompt,
         settings.personality ? `Gaya bahasa: ${settings.personality}.` : "",
+        "Jawab sekuat mungkin: kode lengkap, langkah jelas, contoh siap pakai.",
       ]
         .filter(Boolean)
         .join("\n");
@@ -171,7 +207,7 @@ export function StudioApp() {
         patchMessage(conversationId, assistantId, {
           content:
             assembled +
-            `\n\n_Catatan: cloud (${provider}) — ${errMsg}. Pastikan FREEMODEL_API_KEY (fm_…) di Cloudflare secrets + deploy ulang._`,
+            `\n\n_Catatan: cloud (${provider}) — ${errMsg}. Cek secrets Cloudflare + deploy v1.6._`,
           pathway: reply.pathway,
         });
       }
@@ -222,6 +258,9 @@ export function StudioApp() {
   const lastAssistantId =
     chat?.messages.filter((m) => m.role === "assistant").at(-1)?.id ?? null;
 
+  const keyOk =
+    aiVersion === "1" ? Boolean(sys?.deepseek) : Boolean(sys?.groq);
+
   return (
     <TooltipProvider>
       <div className="relative flex h-dvh overflow-hidden bg-abyss text-ink">
@@ -261,9 +300,19 @@ export function StudioApp() {
                 <span className="font-display text-base tracking-tight">Samudra</span>
               </div>
               <p className="hidden truncate text-sm text-mist md:block">
-                {chat?.title ?? "Ocean Intelligence"}
+                {chat?.title ?? "Ocean Intelligence v" + APP_VERSION}
               </p>
-              <span className="hidden rounded-full bg-tide px-2.5 py-1 font-mono text-[10px] uppercase tracking-wide text-mist md:inline">
+              <span
+                className={
+                  "hidden items-center gap-1.5 rounded-full px-2.5 py-1 font-mono text-[10px] uppercase tracking-wide md:inline-flex " +
+                  (keyOk ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" : "bg-tide text-mist")
+                }
+              >
+                <span
+                  className={
+                    "size-1.5 rounded-full " + (keyOk ? "bg-emerald-500" : "bg-amber-500")
+                  }
+                />
                 {aiVersion === "1" ? "V1 DeepSeek" : "V2 Groq"} · v{APP_VERSION}
               </span>
               <div className="ml-auto flex items-center gap-1">
@@ -302,6 +351,7 @@ export function StudioApp() {
                     });
                     setDockOpen(true);
                   }}
+                  status={sys}
                 />
               ) : (
                 <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-4 pb-8">
@@ -329,6 +379,7 @@ export function StudioApp() {
               busy={busy}
               onSend={() => void send()}
               onStop={stop}
+              statusLine={statusLine}
             />
           </main>
 
@@ -420,27 +471,45 @@ export function StudioApp() {
 function EmptyState({
   onPick,
   onScratch,
+  status,
 }: {
   onPick: (prompt: string) => void;
   onScratch: () => void;
+  status: SystemStatus | null;
 }) {
   let welcome =
-    "Ocean Intelligence v" +
+    "Samudra v" +
     APP_VERSION +
-    " — V1 DeepSeek · V2 Groq. Key: FREEMODEL_API_KEY (fm_…) di Cloudflare.";
+    " — AI full power. Coding, website, debug, bisnis, belajar. V1 DeepSeek · V2 Groq.";
   try {
     welcome = localStorage.getItem("samudra-welcome") || welcome;
   } catch {
     /* */
   }
+
+  const keyHint = status
+    ? status.deepseek
+      ? "DeepSeek key ON"
+      : "DeepSeek key OFF — pasang FREEMODEL_API_KEY di Cloudflare"
+    : "Memeriksa status key…";
+
   return (
     <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col justify-center px-4 py-10">
       <p className="font-display text-4xl leading-none tracking-tight text-foam md:text-5xl">
         Samudra
       </p>
       <p className="mt-3 max-w-md text-sm leading-relaxed text-mist md:text-base">{welcome}</p>
+      <p className="mt-2 text-xs text-mist">
+        <span
+          className={
+            "mr-1.5 inline-block size-1.5 rounded-full " +
+            (status?.deepseek ? "bg-emerald-500" : "bg-amber-500")
+          }
+        />
+        {keyHint}
+      </p>
 
-      <p className="mt-8 text-xs font-medium tracking-wide text-mist uppercase">Quick Actions</p>
+      <p className="mt-8 text-xs font-medium tracking-wide text-mist uppercase">Tools / Quick</p>
       <ul className="mt-2 grid gap-2 sm:grid-cols-2">
         {QUICK_ACTIONS.map((item) => (
           <li key={item.id}>
