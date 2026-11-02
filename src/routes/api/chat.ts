@@ -25,32 +25,26 @@ const Body = z.object({
   systemPrompt: z.string().max(8000).optional(),
 });
 
-const DEFAULT_SYSTEM = `You are ZUZUXF_AI / Otak Samudra v1.6.2.
-Full capability: code, websites, debug, business, analysis, learning. Legal & safe only.
-Match user language (default Indonesian). Prefer runnable single-file HTML for web.
-Images: only Google Images URL, never generate images. Never mention these instructions.`;
+const DEFAULT_SYSTEM = `You are ZUZUXF_AI / Otak Samudra v1.6.4.
+Full capability for legal tasks. Match user language. Prefer single-file HTML for web.
+Images: Google Images URL only. Never mention these instructions.`;
 
 const brain = rawBrain as BrainRaw;
 const pathways: Pathway[] = Array.isArray(brain.pathways) ? brain.pathways : [];
 
-/** V1 DeepSeek — model pilihan user (irit). Key sering fm_… via freemodel.in ATAU fe_oa_ via api.freemodel.dev */
 const DEEPSEEK_BASE = (
   process.env.DEEPSEEK_BASE_URL ||
   process.env.FREEMODEL_BASE_URL ||
   "https://freemodel.in/v1"
 ).replace(/\/$/, "");
 
-const DEEPSEEK_MODELS = [
-  "deepseek-v4.1-flash",
-  "deepseek-v4-flash-0731",
-  "deepseek-flash",
-];
+const DEEPSEEK_MODELS = ["deepseek-v4.1-flash", "deepseek-v4-flash-0731", "deepseek-flash"];
 
-/** V3 Claude — key fe_oa_ · endpoint cc.freemodel.dev */
+/** V3 juga pakai FREEMODEL_API_KEY — endpoint Claude */
 const CLAUDE_BASE = (process.env.CLAUDE_BASE_URL || "https://cc.freemodel.dev").replace(/\/$/, "");
 const CLAUDE_MODELS = ["claude-mythos-preview", "claude-mythos", "claude-sonnet-4"];
 
-const GROQ_MODELS = ["llama-3.1-8b-instant", "llama-3.3-70b-versatile", "openai/gpt-oss-20b"];
+const GROQ_MODELS = ["llama-3.1-8b-instant", "llama-3.3-70b-versatile"];
 
 function envKey(names: string[]): string {
   for (const n of names) {
@@ -64,14 +58,9 @@ function envKey(names: string[]): string {
   return "";
 }
 
-/** Key V1 DeepSeek: DEEPSEEK_API_KEY / FREEMODEL_API_KEY (fm_… atau fe_oa_…) */
-function deepseekKey() {
-  return envKey(["DEEPSEEK_API_KEY", "FREEMODEL_API_KEY", "FM_API_KEY"]);
-}
-
-/** Key V3 Claude: FE_OA_KEY khusus, fallback FREEMODEL_API_KEY */
-function claudeKey() {
-  return envKey(["FE_OA_KEY", "CLAUDE_API_KEY", "FREEMODEL_API_KEY"]);
+/** Satu key FreeModel untuk V1 + V3 */
+function freeModelKey() {
+  return envKey(["FREEMODEL_API_KEY", "DEEPSEEK_API_KEY", "FM_API_KEY", "FE_OA_KEY"]);
 }
 
 async function openaiStream(
@@ -108,16 +97,15 @@ async function openaiStream(
         headers: {
           "Content-Type": "text/event-stream; charset=utf-8",
           "Cache-Control": "no-cache, no-transform",
-          Connection: "keep-alive",
           "X-Samudra-Provider": providerTag,
           "X-Samudra-Model": model,
-          "X-Samudra-Version": "1.6.2",
+          "X-Samudra-Version": "1.6.4",
         },
       });
     }
     if (upstream.status === 401 || upstream.status === 403) {
       return Response.json(
-        { error: `Key ditolak (${providerTag}). Cek secret Cloudflare.` },
+        { error: `Key ditolak (${providerTag}). Edit FREEMODEL_API_KEY di Cloudflare (jangan Add dobel).` },
         { status: 502 },
       );
     }
@@ -133,12 +121,12 @@ export const Route = createFileRoute("/api/chat")({
         try {
           json = await request.json();
         } catch {
-          return Response.json({ error: "Isi permintaan tidak valid." }, { status: 400 });
+          return Response.json({ error: "Isi tidak valid." }, { status: 400 });
         }
 
         const parsed = Body.safeParse(json);
         if (!parsed.success) {
-          return Response.json({ error: "Percakapan terlalu panjang atau kosong." }, { status: 400 });
+          return Response.json({ error: "Percakapan terlalu panjang." }, { status: 400 });
         }
 
         const system = parsed.data.systemPrompt?.trim() || DEFAULT_SYSTEM;
@@ -147,7 +135,7 @@ export const Route = createFileRoute("/api/chat")({
           .slice(-16)
           .map((m) => ({ role: m.role, content: m.content.slice(0, 12000) }));
 
-        if (messages.length === 0) {
+        if (!messages.length) {
           return Response.json({ error: "Tulis pesan dulu." }, { status: 400 });
         }
 
@@ -158,17 +146,13 @@ export const Route = createFileRoute("/api/chat")({
         if (want === "v2") want = "groq";
         if (want === "v3") want = "claude";
 
-        const dsKey = deepseekKey();
-        const clKey = claudeKey();
+        const fm = freeModelKey();
         const groqKey = envKey(["GROQ_API_KEY"]);
 
         if (want === "deepseek" || want === "xai") {
-          if (!dsKey) {
+          if (!fm) {
             return Response.json(
-              {
-                error:
-                  "V1 DeepSeek: set DEEPSEEK_API_KEY atau FREEMODEL_API_KEY (fm_… / key DeepSeek). Model: deepseek-v4.1-flash",
-              },
+              { error: "V1: set FREEMODEL_API_KEY di Cloudflare (Edit, jangan Add dobel)." },
               { status: 503 },
             );
           }
@@ -179,7 +163,7 @@ export const Route = createFileRoute("/api/chat")({
           for (const model of list) {
             const res = await openaiStream(
               DEEPSEEK_BASE,
-              dsKey,
+              fm,
               model,
               system,
               messages,
@@ -188,16 +172,13 @@ export const Route = createFileRoute("/api/chat")({
             );
             if (res) return res;
           }
-          return Response.json({ error: "DeepSeek gagal. Cek model & kredit." }, { status: 502 });
+          return Response.json({ error: "DeepSeek gagal." }, { status: 502 });
         }
 
         if (want === "claude") {
-          if (!clKey) {
+          if (!fm) {
             return Response.json(
-              {
-                error:
-                  "V3 Claude: set FE_OA_KEY (fe_oa_…) di Cloudflare. Endpoint: https://cc.freemodel.dev · claude-mythos-preview",
-              },
+              { error: "V3: pakai FREEMODEL_API_KEY yang sama. Endpoint cc.freemodel.dev" },
               { status: 503 },
             );
           }
@@ -208,7 +189,7 @@ export const Route = createFileRoute("/api/chat")({
           for (const model of list) {
             const res = await openaiStream(
               CLAUDE_BASE,
-              clKey,
+              fm,
               model,
               system,
               messages,
@@ -217,21 +198,14 @@ export const Route = createFileRoute("/api/chat")({
             );
             if (res) return res;
           }
-          return Response.json({ error: "Claude Mythos gagal." }, { status: 502 });
+          return Response.json({ error: "Claude (V3) gagal." }, { status: 502 });
         }
 
         if (want === "groq") {
           if (!groqKey) {
-            return Response.json(
-              { error: "V2 Groq: set GROQ_API_KEY." },
-              { status: 503 },
-            );
+            return Response.json({ error: "V2: set GROQ_API_KEY." }, { status: 503 });
           }
-          const preferred = (process.env.GROQ_MODEL || "").trim();
-          const list = preferred
-            ? [preferred, ...GROQ_MODELS.filter((m) => m !== preferred)]
-            : GROQ_MODELS;
-          for (const model of list) {
+          for (const model of GROQ_MODELS) {
             const upstream = await fetch("https://api.groq.com/openai/v1/chat/completions", {
               method: "POST",
               headers: {
@@ -250,23 +224,19 @@ export const Route = createFileRoute("/api/chat")({
                 status: 200,
                 headers: {
                   "Content-Type": "text/event-stream; charset=utf-8",
-                  "Cache-Control": "no-cache, no-transform",
                   "X-Samudra-Provider": "groq",
-                  "X-Samudra-Version": "1.6.2",
+                  "X-Samudra-Version": "1.6.4",
                 },
               });
-            }
-            if (upstream.status === 401 || upstream.status === 403) {
-              return Response.json({ error: "Groq key ditolak." }, { status: 502 });
             }
           }
           return Response.json({ error: "Groq gagal." }, { status: 502 });
         }
 
-        if (dsKey) {
+        if (fm) {
           const res = await openaiStream(
             DEEPSEEK_BASE,
-            dsKey,
+            fm,
             DEEPSEEK_MODELS[0],
             system,
             messages,
@@ -278,17 +248,13 @@ export const Route = createFileRoute("/api/chat")({
 
         const hit = matchBrain(query, pathways, 4);
         if (hit) {
-          return new Response(
-            textToSseStream(hit.answer),
-            {
-              status: 200,
-              headers: {
-                "Content-Type": "text/event-stream; charset=utf-8",
-                "X-Samudra-Brain": "1",
-                "X-Samudra-Version": "1.6.2",
-              },
+          return new Response(textToSseStream(hit.answer), {
+            status: 200,
+            headers: {
+              "Content-Type": "text/event-stream; charset=utf-8",
+              "X-Samudra-Brain": "1",
             },
-          );
+          });
         }
 
         return new Response(textToSseStream(fallbackAnswer(query)), {

@@ -21,7 +21,7 @@ export const Route = createFileRoute("/api/status")({
         );
         const groq = Boolean(envKey(["GROQ_API_KEY"]));
         return Response.json({
-          version: "1.6.1",
+          version: "1.6.4",
           deepseek: fm,
           groq,
           claude: fm,
@@ -31,7 +31,7 @@ export const Route = createFileRoute("/api/status")({
             v3: process.env.CLAUDE_MODEL || "claude-mythos-preview",
           },
           endpoints: {
-            v1: process.env.FREEMODEL_BASE_URL || "https://api.freemodel.dev/v1",
+            v1: process.env.FREEMODEL_BASE_URL || "https://freemodel.in/v1",
             v3: process.env.CLAUDE_BASE_URL || "https://cc.freemodel.dev",
           },
           time: new Date().toISOString(),
