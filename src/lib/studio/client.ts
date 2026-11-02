@@ -3,23 +3,25 @@ export type ChatTurn = { role: "user" | "assistant"; content: string };
 export type ChatProvider =
   | "brain"
   | "deepseek"
-  | "gemini"
   | "groq"
+  | "claude"
+  | "gemini"
   | "xai"
   | "v1"
-  | "v2";
+  | "v2"
+  | "v3";
 
 export type SystemStatus = {
   version: string;
   deepseek: boolean;
   groq: boolean;
-  gemini: boolean;
-  baseUrl: string;
-  model: string;
+  claude?: boolean;
+  models?: { v1?: string; v2?: string; v3?: string };
+  endpoints?: { v1?: string; v3?: string };
   time: string;
+  ready?: boolean;
 };
 
-/** Key hanya dari Cloudflare env — client tidak mengirim key */
 export async function streamChat(options: {
   messages: ChatTurn[];
   signal: AbortSignal;
@@ -44,7 +46,7 @@ export async function streamChat(options: {
       const payload = (await response.json()) as { error?: string };
       if (payload.error) detail = payload.error;
     } catch {
-      /* keep default */
+      /* */
     }
     throw new Error(detail);
   }
@@ -72,11 +74,9 @@ export async function streamChat(options: {
           choices?: { delta?: { content?: string | null } }[];
         };
         const token = json.choices?.[0]?.delta?.content;
-        if (typeof token === "string" && token.length > 0) {
-          options.onDelta(token);
-        }
+        if (typeof token === "string" && token.length > 0) options.onDelta(token);
       } catch {
-        /* ignore non-json sse */
+        /* */
       }
     }
   }

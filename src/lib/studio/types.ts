@@ -2,8 +2,8 @@ export type ChatRole = "user" | "assistant";
 
 export type StudioMode = "chat" | "image";
 
-/** V1 = Gemini, V2 = Groq */
-export type ImageVersion = "1" | "2";
+/** V1 DeepSeek · V2 Groq · V3 Claude Mythos */
+export type ImageVersion = "1" | "2" | "3";
 
 export type ChatMessage = {
   id: string;

@@ -16,28 +16,26 @@ export const Route = createFileRoute("/api/status")({
   server: {
     handlers: {
       GET: async () => {
-        const deepseek = Boolean(
-          envKey(["FREEMODEL_API_KEY", "DEEPSEEK_API_KEY", "FM_API_KEY"]),
+        const fm = Boolean(
+          envKey(["FREEMODEL_API_KEY", "DEEPSEEK_API_KEY", "FM_API_KEY", "FE_OA_KEY"]),
         );
         const groq = Boolean(envKey(["GROQ_API_KEY"]));
-        const gemini = Boolean(envKey(["GEMINI_API_KEY", "GOOGLE_API_KEY"]));
-        const baseUrl = (process.env.FREEMODEL_BASE_URL || "https://freemodel.in/v1").replace(
-          /\/$/,
-          "",
-        );
-        const model =
-          (process.env.DEEPSEEK_MODEL || process.env.FREEMODEL_MODEL || "deepseek-v4-pro-0813").trim();
-
         return Response.json({
-          version: "1.6",
-          deepseek,
+          version: "1.6.1",
+          deepseek: fm,
           groq,
-          gemini,
-          baseUrl,
-          model,
+          claude: fm,
+          models: {
+            v1: process.env.DEEPSEEK_MODEL || "deepseek-v4.1-flash",
+            v2: process.env.GROQ_MODEL || "llama-3.1-8b-instant",
+            v3: process.env.CLAUDE_MODEL || "claude-mythos-preview",
+          },
+          endpoints: {
+            v1: process.env.FREEMODEL_BASE_URL || "https://api.freemodel.dev/v1",
+            v3: process.env.CLAUDE_BASE_URL || "https://cc.freemodel.dev",
+          },
           time: new Date().toISOString(),
-          /** true = key terpasang (bukan sisa kuota provider — itu di dashboard FreeModel) */
-          ready: deepseek || groq || gemini,
+          ready: fm || groq,
         });
       },
     },
