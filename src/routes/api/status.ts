@@ -17,7 +17,7 @@ export const Route = createFileRoute("/api/status")({
     handlers: {
       GET: async () => {
         const v1 = Boolean(envKey(["FREEMODEL_API_KEY", "DEEPSEEK_API_KEY", "FM_API_KEY"]));
-        const v3 = Boolean(envKey(["FREEMODELCLAUDE", "FREEMODEL_CLAUDE", "FE_OA_KEY"]));
+        const v3 = Boolean(envKey(["FREEMODELV3", "FREEMODELCLAUDE", "FREEMODEL_CLAUDE", "FE_OA_KEY"]));
         const groq = Boolean(envKey(["GROQ_API_KEY"]));
         return Response.json({
           version: "1.6.6",

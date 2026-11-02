@@ -65,8 +65,9 @@ function v1Key() {
   return envKey(["FREEMODEL_API_KEY", "DEEPSEEK_API_KEY", "FM_API_KEY"]);
 }
 
+/** V3 — nama secret: FREEMODELV3 */
 function v3Key() {
-  return envKey(["FREEMODELCLAUDE", "FREEMODEL_CLAUDE", "FE_OA_KEY"]);
+  return envKey(["FREEMODELV3", "FREEMODELCLAUDE", "FREEMODEL_CLAUDE", "FE_OA_KEY"]);
 }
 
 async function openaiStream(
@@ -197,7 +198,7 @@ export const Route = createFileRoute("/api/chat")({
             return Response.json(
               {
                 error:
-                  "V3: Add secret FREEMODELCLAUDE (value key fe_oa_…). Nama harus beda dari FREEMODEL_API_KEY.",
+                  "V3: Add secret FREEMODELV3 (value = key fe_oa_…). Jangan pakai nama FREEMODEL_API_KEY.",
               },
               { status: 503 },
             );
@@ -218,7 +219,7 @@ export const Route = createFileRoute("/api/chat")({
             );
             if (res) return res;
           }
-          return Response.json({ error: "Claude V3 gagal. Cek FREEMODELCLAUDE." }, { status: 502 });
+          return Response.json({ error: "Claude V3 gagal. Cek FREEMODELV3." }, { status: 502 });
         }
 
         if (want === "groq") {
