@@ -25,7 +25,7 @@ const Body = z.object({
   systemPrompt: z.string().max(8000).optional(),
 });
 
-const DEFAULT_SYSTEM = `You are ZUZUXF_AI / Otak Samudra v1.6.8.
+const DEFAULT_SYSTEM = `You are ZUZUXF_AI / Otak Samudra v1.6.9.
 Help with legal tasks. Match user language (default Indonesian). Prefer clear answers.
 Prefer single-file HTML for web. Images: Google Images URL only.`;
 
@@ -45,7 +45,7 @@ const V1_MODELS = [
   "auto",
 ];
 
-/** V3 — pakai OpenAI-compatible api.freemodel.dev (cc.freemodel.dev di-gate Claude Code saja) */
+/** V3 — FreeModel OpenAI path. Claude + model yang sering tersedia di akun */
 const V3_BASE = (process.env.CLAUDE_BASE_URL || "https://api.freemodel.dev/v1").replace(
   /\/$/,
   "",
@@ -56,6 +56,9 @@ const V3_MODELS = [
   "claude-sonnet-4-20250514",
   "claude-3-5-sonnet-latest",
   "claude-opus-4",
+  "gpt-6-luna",
+  "gpt-6-sol",
+  "gpt-6-astra",
   "auto",
 ];
 
@@ -129,7 +132,7 @@ async function openaiChatStream(
               "Cache-Control": "no-cache, no-transform",
               "X-Samudra-Provider": providerTag,
               "X-Samudra-Model": model,
-              "X-Samudra-Version": "1.6.8",
+              "X-Samudra-Version": "1.6.9",
             },
           }),
         };
@@ -143,23 +146,38 @@ async function openaiChatStream(
     }
   }
 
-  return { ok: false, status: lastStatus, body: lastBody.slice(0, 280) };
+  return { ok: false, status: lastStatus, body: lastBody.slice(0, 320) };
 }
 
 function explainUpstream(tag: string, status: number, body: string): string {
   const b = body.toLowerCase();
+
+  if (
+    b.includes("insufficient balance") ||
+    b.includes("insufficient_quota") ||
+    b.includes("quota") ||
+    b.includes("no credit") ||
+    b.includes("balance")
+  ) {
+    return `${tag}: kredit FreeModel habis (Insufficient balance). Isi saldo di freemodel.dev → Billing/Usage, lalu coba lagi. Key-nya valid, yang kurang kredit.`;
+  }
+
   if (status === 401 || status === 403 || b.includes("unauthorized") || b.includes("invalid token")) {
-    return `${tag}: key ditolak FreeModel (${status}). Pastikan secret FREEMODELV3 = key fe_oa_ lengkap (copy ulang dari freemodel.dev → API Keys). Jangan ada spasi.`;
+    return `${tag}: key ditolak (${status}). Cek FREEMODELV3 = fe_oa_… lengkap, tanpa spasi.`;
   }
+
   if (b.includes("restricted") || b.includes("claude code")) {
-    return `${tag}: endpoint Claude Code saja. Samudra sudah pakai api.freemodel.dev — deploy ulang worker.`;
+    return `${tag}: endpoint khusus Claude Code. Samudra memakai api.freemodel.dev.`;
   }
-  if (status === 404 || b.includes("model")) {
-    return `${tag}: model tidak tersedia (${status}). Coba model lain di freemodel atau set CLAUDE_MODEL.`;
+
+  if (status === 404 || b.includes("model_not_found") || b.includes("does not exist")) {
+    return `${tag}: model tidak tersedia di akunmu. Cek model di freemodel.dev.`;
   }
-  if (status === 429 || b.includes("rate") || b.includes("quota") || b.includes("credit")) {
-    return `${tag}: limit/kredit FreeModel habis. Cek Usage di freemodel.dev.`;
+
+  if (status === 429 || b.includes("rate")) {
+    return `${tag}: terlalu banyak request. Tunggu sebentar.`;
   }
+
   return `${tag} gagal (${status}): ${body || "tanpa detail"}`;
 }
 
@@ -209,32 +227,27 @@ export const Route = createFileRoute("/api/chat")({
             ? [preferred, ...V1_MODELS.filter((m) => m !== preferred)]
             : V1_MODELS;
           let last: StreamResult | null = null;
-          for (const model of list) {
-            const res = await openaiChatStream(
-              V1_BASE,
-              k1,
-              model,
-              system,
-              messages,
-              request.signal,
-              "deepseek",
-            );
-            if (res.ok) return res.response;
-            last = res;
-          }
-          // fallback host lama
-          for (const model of list) {
-            const res = await openaiChatStream(
-              "https://freemodel.in/v1",
-              k1,
-              model,
-              system,
-              messages,
-              request.signal,
-              "deepseek",
-            );
-            if (res.ok) return res.response;
-            last = res;
+          for (const base of [V1_BASE, "https://api.freemodel.dev/v1", "https://freemodel.in/v1"]) {
+            for (const model of list) {
+              const res = await openaiChatStream(
+                base,
+                k1,
+                model,
+                system,
+                messages,
+                request.signal,
+                "deepseek",
+              );
+              if (res.ok) return res.response;
+              last = res;
+              // kredit habis → stop early
+              if (!res.ok && /insufficient|balance|quota/i.test(res.body)) {
+                return Response.json(
+                  { error: explainUpstream("V1", res.status, res.body) },
+                  { status: 402 },
+                );
+              }
+            }
           }
           return Response.json(
             {
@@ -253,20 +266,9 @@ export const Route = createFileRoute("/api/chat")({
             return Response.json(
               {
                 error:
-                  "V3: Cloudflare secret FREEMODELV3 masih kosong. Add → Name FREEMODELV3 → Value key fe_oa_… → Secret → Deploy.",
+                  "V3: secret FREEMODELV3 kosong. Add di Cloudflare → FREEMODELV3 = fe_oa_… → Deploy.",
               },
               { status: 503 },
-            );
-          }
-
-          // Validasi kasar format key
-          if (!k3.startsWith("fe_oa_") && !k3.startsWith("fm_") && !k3.startsWith("sk-")) {
-            return Response.json(
-              {
-                error:
-                  "FREEMODELV3 sepertinya bukan key FreeModel (harus mulai fe_oa_…). Copy ulang dari freemodel.dev → API Keys.",
-              },
-              { status: 502 },
             );
           }
 
@@ -277,23 +279,7 @@ export const Route = createFileRoute("/api/chat")({
 
           let last: StreamResult | null = null;
 
-          // 1) OpenAI format — api.freemodel.dev (tidak di-gate)
-          for (const model of list) {
-            const res = await openaiChatStream(
-              V3_BASE,
-              k3,
-              model,
-              system,
-              messages,
-              request.signal,
-              "claude",
-            );
-            if (res.ok) return res.response;
-            last = res;
-          }
-
-          // 2) Host alternatif
-          for (const base of ["https://api.freemodel.dev/v1", "https://freemodel.in/v1"]) {
+          for (const base of [V3_BASE, "https://api.freemodel.dev/v1"]) {
             for (const model of list) {
               const res = await openaiChatStream(
                 base,
@@ -306,10 +292,16 @@ export const Route = createFileRoute("/api/chat")({
               );
               if (res.ok) return res.response;
               last = res;
+              if (!res.ok && /insufficient|balance|quota/i.test(res.body)) {
+                return Response.json(
+                  { error: explainUpstream("V3", res.status, res.body) },
+                  { status: 402 },
+                );
+              }
             }
           }
 
-          // 3) Kalau V3 key gagal total, coba V1 key di path yang sama (user sering pakai 1 key)
+          // Coba key V1 jika beda (sering 1 key untuk semua)
           if (k1 && k1 !== k3) {
             for (const model of list) {
               const res = await openaiChatStream(
@@ -322,6 +314,13 @@ export const Route = createFileRoute("/api/chat")({
                 "claude",
               );
               if (res.ok) return res.response;
+              last = res;
+              if (!res.ok && /insufficient|balance|quota/i.test(res.body)) {
+                return Response.json(
+                  { error: explainUpstream("V3", res.status, res.body) },
+                  { status: 402 },
+                );
+              }
             }
           }
 
@@ -363,16 +362,16 @@ export const Route = createFileRoute("/api/chat")({
                   headers: {
                     "Content-Type": "text/event-stream; charset=utf-8",
                     "X-Samudra-Provider": "groq",
-                    "X-Samudra-Version": "1.6.8",
+                    "X-Samudra-Version": "1.6.9",
                   },
                 });
               }
-              last = `${upstream.status} ${await upstream.text().then((t) => t.slice(0, 120))}`;
+              last = `${upstream.status}`;
             } catch (e) {
               last = e instanceof Error ? e.message : "err";
             }
           }
-          return Response.json({ error: `Groq gagal. ${last}` }, { status: 502 });
+          return Response.json({ error: `Groq gagal (${last}).` }, { status: 502 });
         }
 
         if (k1) {

@@ -20,7 +20,7 @@ export const Route = createFileRoute("/api/status")({
         const v3 = Boolean(envKey(["FREEMODELV3", "FREEMODELCLAUDE", "FREEMODEL_CLAUDE", "FE_OA_KEY"]));
         const groq = Boolean(envKey(["GROQ_API_KEY"]));
         return Response.json({
-          version: "1.6.8",
+          version: "1.6.9",
           deepseek: v1,
           groq,
           claude: v3,
