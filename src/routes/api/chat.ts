@@ -25,34 +25,41 @@ const Body = z.object({
   systemPrompt: z.string().max(8000).optional(),
 });
 
-const DEFAULT_SYSTEM = `You are ZUZUXF_AI / Otak Samudra v1.6.7.
+const DEFAULT_SYSTEM = `You are ZUZUXF_AI / Otak Samudra v1.6.8.
 Help with legal tasks. Match user language (default Indonesian). Prefer clear answers.
 Prefer single-file HTML for web. Images: Google Images URL only.`;
 
 const brain = rawBrain as BrainRaw;
 const pathways: Pathway[] = Array.isArray(brain.pathways) ? brain.pathways : [];
 
-const DEEPSEEK_BASE = (
+const V1_BASE = (
   process.env.DEEPSEEK_BASE_URL ||
   process.env.FREEMODEL_BASE_URL ||
   "https://api.freemodel.dev/v1"
 ).replace(/\/$/, "");
-const DEEPSEEK_MODELS = ["deepseek-v4.1-flash", "deepseek-v4-flash-0731", "deepseek-flash"];
 
-/** V3 Claude — Anthropic native di FreeModel */
-const CLAUDE_BASE = (process.env.CLAUDE_BASE_URL || "https://cc.freemodel.dev").replace(/\/$/, "");
-const CLAUDE_MODELS = [
+const V1_MODELS = [
+  "deepseek-v4.1-flash",
+  "deepseek-v4-flash-0731",
+  "deepseek-flash",
+  "auto",
+];
+
+/** V3 — pakai OpenAI-compatible api.freemodel.dev (cc.freemodel.dev di-gate Claude Code saja) */
+const V3_BASE = (process.env.CLAUDE_BASE_URL || "https://api.freemodel.dev/v1").replace(
+  /\/$/,
+  "",
+);
+const V3_MODELS = [
   "claude-mythos-preview",
   "claude-sonnet-4",
   "claude-sonnet-4-20250514",
   "claude-3-5-sonnet-latest",
+  "claude-opus-4",
+  "auto",
 ];
 
-const GROQ_MODELS = [
-  "llama-3.1-8b-instant",
-  "llama-3.3-70b-versatile",
-  "gemma2-9b-it",
-];
+const GROQ_MODELS = ["llama-3.1-8b-instant", "llama-3.3-70b-versatile", "gemma2-9b-it"];
 
 function envKey(names: string[]): string {
   for (const n of names) {
@@ -74,8 +81,11 @@ function v3Key() {
   return envKey(["FREEMODELV3", "FREEMODELCLAUDE", "FREEMODEL_CLAUDE", "FE_OA_KEY"]);
 }
 
-/** OpenAI-compatible stream → passthrough SSE */
-async function openaiStream(
+type StreamResult =
+  | { ok: true; response: Response }
+  | { ok: false; status: number; body: string };
+
+async function openaiChatStream(
   base: string,
   key: string,
   model: string,
@@ -83,12 +93,16 @@ async function openaiStream(
   messages: { role: string; content: string }[],
   signal: AbortSignal,
   providerTag: string,
-): Promise<Response | null> {
-  const paths = base.endsWith("/v1")
-    ? [`${base}/chat/completions`]
-    : [`${base}/v1/chat/completions`, `${base}/chat/completions`];
+): Promise<StreamResult> {
+  const root = base.replace(/\/$/, "");
+  const urls = root.endsWith("/v1")
+    ? [`${root}/chat/completions`]
+    : [`${root}/v1/chat/completions`, `${root}/chat/completions`];
 
-  for (const url of paths) {
+  let lastStatus = 0;
+  let lastBody = "";
+
+  for (const url of urls) {
     try {
       const upstream = await fetch(url, {
         method: "POST",
@@ -104,161 +118,49 @@ async function openaiStream(
         }),
         signal,
       });
+
       if (upstream.ok && upstream.body) {
-        return new Response(upstream.body, {
-          status: 200,
-          headers: {
-            "Content-Type": "text/event-stream; charset=utf-8",
-            "Cache-Control": "no-cache, no-transform",
-            "X-Samudra-Provider": providerTag,
-            "X-Samudra-Model": model,
-            "X-Samudra-Version": "1.6.7",
-          },
-        });
+        return {
+          ok: true,
+          response: new Response(upstream.body, {
+            status: 200,
+            headers: {
+              "Content-Type": "text/event-stream; charset=utf-8",
+              "Cache-Control": "no-cache, no-transform",
+              "X-Samudra-Provider": providerTag,
+              "X-Samudra-Model": model,
+              "X-Samudra-Version": "1.6.8",
+            },
+          }),
+        };
       }
-      if (upstream.status === 401 || upstream.status === 403) {
-        return Response.json(
-          { error: `Key ditolak (${providerTag}). Cek secret Cloudflare.` },
-          { status: 502 },
-        );
-      }
-    } catch {
-      /* try next */
+
+      lastStatus = upstream.status;
+      lastBody = await upstream.text().catch(() => "");
+    } catch (e) {
+      lastStatus = 0;
+      lastBody = e instanceof Error ? e.message : "network";
     }
   }
-  return null;
+
+  return { ok: false, status: lastStatus, body: lastBody.slice(0, 280) };
 }
 
-/** Anthropic Messages API (FreeModel cc.freemodel.dev) → convert stream ke format OpenAI SSE */
-async function anthropicStream(
-  base: string,
-  key: string,
-  model: string,
-  system: string,
-  messages: { role: string; content: string }[],
-  signal: AbortSignal,
-): Promise<Response | null> {
-  const url = `${base.replace(/\/$/, "")}/v1/messages`;
-  const anthropicMessages = messages.map((m) => ({
-    role: m.role === "assistant" ? "assistant" : "user",
-    content: m.content,
-  }));
-
-  // Anthropic requires alternating roles; merge consecutive same roles lightly
-  const cleaned: { role: string; content: string }[] = [];
-  for (const m of anthropicMessages) {
-    const last = cleaned[cleaned.length - 1];
-    if (last && last.role === m.role) {
-      last.content += "\n\n" + m.content;
-    } else {
-      cleaned.push({ ...m });
-    }
+function explainUpstream(tag: string, status: number, body: string): string {
+  const b = body.toLowerCase();
+  if (status === 401 || status === 403 || b.includes("unauthorized") || b.includes("invalid token")) {
+    return `${tag}: key ditolak FreeModel (${status}). Pastikan secret FREEMODELV3 = key fe_oa_ lengkap (copy ulang dari freemodel.dev → API Keys). Jangan ada spasi.`;
   }
-  if (cleaned[0]?.role === "assistant") {
-    cleaned.unshift({ role: "user", content: "." });
+  if (b.includes("restricted") || b.includes("claude code")) {
+    return `${tag}: endpoint Claude Code saja. Samudra sudah pakai api.freemodel.dev — deploy ulang worker.`;
   }
-
-  try {
-    const upstream = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${key}`,
-        "x-api-key": key,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens: 4096,
-        stream: true,
-        system,
-        messages: cleaned,
-      }),
-      signal,
-    });
-
-    if (upstream.status === 401 || upstream.status === 403) {
-      return Response.json(
-        {
-          error:
-            "Key ditolak (V3 Claude). Pastikan FREEMODELV3 = key fe_oa_… dari freemodel.dev (bukan key lain).",
-        },
-        { status: 502 },
-      );
-    }
-
-    if (!upstream.ok || !upstream.body) {
-      const t = await upstream.text().catch(() => "");
-      console.warn("[claude anthropic]", upstream.status, t.slice(0, 200));
-      return null;
-    }
-
-    // Convert Anthropic SSE → OpenAI-style delta content for our client
-    const reader = upstream.body.getReader();
-    const decoder = new TextDecoder();
-    const encoder = new TextEncoder();
-
-    const stream = new ReadableStream<Uint8Array>({
-      async start(controller) {
-        let buf = "";
-        try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            buf += decoder.decode(value, { stream: true });
-            const lines = buf.split("\n");
-            buf = lines.pop() ?? "";
-            for (const line of lines) {
-              const trimmed = line.trim();
-              if (!trimmed.startsWith("data:")) continue;
-              const data = trimmed.slice(5).trim();
-              if (!data || data === "[DONE]") continue;
-              try {
-                const ev = JSON.parse(data) as {
-                  type?: string;
-                  delta?: { type?: string; text?: string };
-                  content_block?: { text?: string };
-                };
-                let text = "";
-                if (ev.type === "content_block_delta" && ev.delta?.text) {
-                  text = ev.delta.text;
-                } else if (ev.delta?.type === "text_delta" && ev.delta.text) {
-                  text = ev.delta.text;
-                }
-                if (text) {
-                  const chunk = {
-                    choices: [{ delta: { content: text }, index: 0 }],
-                  };
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
-                }
-              } catch {
-                /* skip */
-              }
-            }
-          }
-          controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-        } catch (e) {
-          controller.error(e);
-        } finally {
-          controller.close();
-        }
-      },
-    });
-
-    return new Response(stream, {
-      status: 200,
-      headers: {
-        "Content-Type": "text/event-stream; charset=utf-8",
-        "Cache-Control": "no-cache, no-transform",
-        "X-Samudra-Provider": "claude",
-        "X-Samudra-Model": model,
-        "X-Samudra-Version": "1.6.7",
-      },
-    });
-  } catch (e) {
-    console.warn("[claude]", e);
-    return null;
+  if (status === 404 || b.includes("model")) {
+    return `${tag}: model tidak tersedia (${status}). Coba model lain di freemodel atau set CLAUDE_MODEL.`;
   }
+  if (status === 429 || b.includes("rate") || b.includes("quota") || b.includes("credit")) {
+    return `${tag}: limit/kredit FreeModel habis. Cek Usage di freemodel.dev.`;
+  }
+  return `${tag} gagal (${status}): ${body || "tanpa detail"}`;
 }
 
 export const Route = createFileRoute("/api/chat")({
@@ -298,17 +200,18 @@ export const Route = createFileRoute("/api/chat")({
         if (want === "deepseek" || want === "xai") {
           if (!k1) {
             return Response.json(
-              { error: "V1: set FREEMODEL_API_KEY di Cloudflare." },
+              { error: "V1: set FREEMODEL_API_KEY di Cloudflare (Secret)." },
               { status: 503 },
             );
           }
           const preferred = (process.env.DEEPSEEK_MODEL || "").trim();
           const list = preferred
-            ? [preferred, ...DEEPSEEK_MODELS.filter((m) => m !== preferred)]
-            : DEEPSEEK_MODELS;
+            ? [preferred, ...V1_MODELS.filter((m) => m !== preferred)]
+            : V1_MODELS;
+          let last: StreamResult | null = null;
           for (const model of list) {
-            const res = await openaiStream(
-              DEEPSEEK_BASE,
+            const res = await openaiChatStream(
+              V1_BASE,
               k1,
               model,
               system,
@@ -316,9 +219,33 @@ export const Route = createFileRoute("/api/chat")({
               request.signal,
               "deepseek",
             );
-            if (res) return res;
+            if (res.ok) return res.response;
+            last = res;
           }
-          return Response.json({ error: "DeepSeek gagal." }, { status: 502 });
+          // fallback host lama
+          for (const model of list) {
+            const res = await openaiChatStream(
+              "https://freemodel.in/v1",
+              k1,
+              model,
+              system,
+              messages,
+              request.signal,
+              "deepseek",
+            );
+            if (res.ok) return res.response;
+            last = res;
+          }
+          return Response.json(
+            {
+              error: explainUpstream(
+                "V1",
+                last && !last.ok ? last.status : 502,
+                last && !last.ok ? last.body : "",
+              ),
+            },
+            { status: 502 },
+          );
         }
 
         if (want === "claude") {
@@ -326,33 +253,34 @@ export const Route = createFileRoute("/api/chat")({
             return Response.json(
               {
                 error:
-                  "V3: Add secret FREEMODELV3 = key fe_oa_… dari freemodel.dev (API Keys).",
+                  "V3: Cloudflare secret FREEMODELV3 masih kosong. Add → Name FREEMODELV3 → Value key fe_oa_… → Secret → Deploy.",
               },
               { status: 503 },
             );
           }
-          const preferred = (process.env.CLAUDE_MODEL || "").trim();
-          const list = preferred
-            ? [preferred, ...CLAUDE_MODELS.filter((m) => m !== preferred)]
-            : CLAUDE_MODELS;
 
-          // 1) Anthropic native (benar untuk cc.freemodel.dev)
-          for (const model of list) {
-            const res = await anthropicStream(
-              CLAUDE_BASE,
-              k3,
-              model,
-              system,
-              messages,
-              request.signal,
+          // Validasi kasar format key
+          if (!k3.startsWith("fe_oa_") && !k3.startsWith("fm_") && !k3.startsWith("sk-")) {
+            return Response.json(
+              {
+                error:
+                  "FREEMODELV3 sepertinya bukan key FreeModel (harus mulai fe_oa_…). Copy ulang dari freemodel.dev → API Keys.",
+              },
+              { status: 502 },
             );
-            if (res) return res;
           }
 
-          // 2) Fallback OpenAI format di api.freemodel.dev
+          const preferred = (process.env.CLAUDE_MODEL || "").trim();
+          const list = preferred
+            ? [preferred, ...V3_MODELS.filter((m) => m !== preferred)]
+            : V3_MODELS;
+
+          let last: StreamResult | null = null;
+
+          // 1) OpenAI format — api.freemodel.dev (tidak di-gate)
           for (const model of list) {
-            const res = await openaiStream(
-              "https://api.freemodel.dev/v1",
+            const res = await openaiChatStream(
+              V3_BASE,
               k3,
               model,
               system,
@@ -360,13 +288,50 @@ export const Route = createFileRoute("/api/chat")({
               request.signal,
               "claude",
             );
-            if (res) return res;
+            if (res.ok) return res.response;
+            last = res;
+          }
+
+          // 2) Host alternatif
+          for (const base of ["https://api.freemodel.dev/v1", "https://freemodel.in/v1"]) {
+            for (const model of list) {
+              const res = await openaiChatStream(
+                base,
+                k3,
+                model,
+                system,
+                messages,
+                request.signal,
+                "claude",
+              );
+              if (res.ok) return res.response;
+              last = res;
+            }
+          }
+
+          // 3) Kalau V3 key gagal total, coba V1 key di path yang sama (user sering pakai 1 key)
+          if (k1 && k1 !== k3) {
+            for (const model of list) {
+              const res = await openaiChatStream(
+                "https://api.freemodel.dev/v1",
+                k1,
+                model,
+                system,
+                messages,
+                request.signal,
+                "claude",
+              );
+              if (res.ok) return res.response;
+            }
           }
 
           return Response.json(
             {
-              error:
-                "Claude V3 gagal. Cek FREEMODELV3 (fe_oa_…) + model di freemodel.dev. Endpoint: cc.freemodel.dev",
+              error: explainUpstream(
+                "V3",
+                last && !last.ok ? last.status : 502,
+                last && !last.ok ? last.body : "",
+              ),
             },
             { status: 502 },
           );
@@ -398,29 +363,29 @@ export const Route = createFileRoute("/api/chat")({
                   headers: {
                     "Content-Type": "text/event-stream; charset=utf-8",
                     "X-Samudra-Provider": "groq",
-                    "X-Samudra-Version": "1.6.7",
+                    "X-Samudra-Version": "1.6.8",
                   },
                 });
               }
-              last = `${upstream.status}`;
+              last = `${upstream.status} ${await upstream.text().then((t) => t.slice(0, 120))}`;
             } catch (e) {
               last = e instanceof Error ? e.message : "err";
             }
           }
-          return Response.json({ error: `Groq gagal (${last}).` }, { status: 502 });
+          return Response.json({ error: `Groq gagal. ${last}` }, { status: 502 });
         }
 
         if (k1) {
-          const res = await openaiStream(
-            DEEPSEEK_BASE,
+          const res = await openaiChatStream(
+            V1_BASE,
             k1,
-            DEEPSEEK_MODELS[0],
+            V1_MODELS[0],
             system,
             messages,
             request.signal,
             "deepseek",
           );
-          if (res) return res;
+          if (res.ok) return res.response;
         }
 
         const hit = matchBrain(query, pathways, 4);
