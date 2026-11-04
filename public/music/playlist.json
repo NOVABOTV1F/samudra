@@ -1,6 +1,6 @@
 {
-  "version": "1.3",
-  "note": "MUSIC SAMUDRA",
+  "version": "17,6",
+  "note": "MUSIC SAMUDRA BY F****",
   "tracks": [
     {"id": "m01", "title": "TEH HIJAU", "artist": "music", "url": "https://raw.githubusercontent.com/NOVABOTV1F/MUSICPLAYLIST/main/Tulus_-_Teh_Hijau_(mp3.pm).mp3"},
     {"id": "m02", "title": "ASTAGA BERCANDA", "artist": "music", "url": "https://raw.githubusercontent.com/NOVABOTV1F/MUSICPLAYLIST/main/ASTAGA BERCANDA.mp3"},
@@ -9,9 +9,9 @@
     {"id": "m05", "title": "SESI POTRET", "artist": "music", "url": "https://raw.githubusercontent.com/NOVABOTV1F/MUSICPLAYLIST/main/SESI POTRET.mp3"},
     {"id": "m06", "title": "JATUH CINTA", "artist": "music", "url": "https://raw.githubusercontent.com/NOVABOTV1F/MUSICPLAYLIST/main/JATUH CINTA.mp3"},
     {"id": "m07", "title": "KITA LEWATI BERDUA", "artist": "music", "url": "https://raw.githubusercontent.com/NOVABOTV1F/MUSICPLAYLIST/main/KITA LEWAT BERDUA.mp3"},
-    {"id": "m08", "title": "Slot 08", "artist": "—", "url": ""},
-    {"id": "m09", "title": "Slot 09", "artist": "—", "url": ""},
-    {"id": "m10", "title": "Slot 10", "artist": "—", "url": ""},
+    {"id": "m08", "title": "my mine gueh", "music": "—", "url": "https://raw.githubusercontent.com/NOVABOTV1F/MUSICPLAYLIST/main/my mine gueh.mp3"},
+    {"id": "m09", "title": "hindia rumah ke rumah", "music": "—", "url": "https://raw.githubusercontent.com/NOVABOTV1F/MUSICPLAYLIST/main/hindia rumah ke rumah.mp3"},
+    {"id": "m10", "title": "ingatlah kapan kita", "ingatlah kapan kita": "—", "url": "https://raw.githubusercontent.com/NOVABOTV1F/MUSICPLAYLIST/main/ingatlah kapan kita.mp3"},
     {"id": "m11", "title": "Slot 11", "artist": "—", "url": ""},
     {"id": "m12", "title": "Slot 12", "artist": "—", "url": ""},
     {"id": "m13", "title": "Slot 13", "artist": "—", "url": ""},
