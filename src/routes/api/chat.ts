@@ -25,7 +25,7 @@ const Body = z.object({
   systemPrompt: z.string().max(8000).optional(),
 });
 
-const DEFAULT_SYSTEM = `You are ZUZUXF_AI / Otak Samudra v1.7.1.
+const DEFAULT_SYSTEM = `You are ZUZUXF_AI / Otak Samudra v1.7.2.
 Help with legal tasks. Match user language (default Indonesian). Prefer clear answers.
 Prefer single-file HTML for web. Images: Google Images URL only.`;
 
@@ -45,7 +45,6 @@ const V1_MODELS = [
   "auto",
 ];
 
-/** V3 — Codex Relay */
 const V3_BASE = (
   process.env.CLAUDE_BASE_URL ||
   process.env.CODEX_RELAY_BASE_URL ||
@@ -64,12 +63,15 @@ const V3_MODELS = [
   "auto",
 ];
 
+/** Hanya model Groq yang masih aktif (tanpa mixtral decommissioned) */
 const GROQ_MODELS = [
   "llama-3.3-70b-versatile",
   "llama-3.1-8b-instant",
-  "llama-3.1-70b-versatile",
+  "openai/gpt-oss-20b",
+  "openai/gpt-oss-120b",
+  "meta-llama/llama-4-scout-17b-16e-instruct",
+  "qwen/qwen3-32b",
   "gemma2-9b-it",
-  "mixtral-8x7b-32768",
 ];
 
 function envKey(names: string[]): string {
@@ -91,12 +93,7 @@ function v1Key() {
 }
 
 function v3Key() {
-  return envKey([
-    "FREEMODELV3",
-    "CODEX_RELAY_KEY",
-    "CODEX_RELAY_API_KEY",
-    "FREEMODELCLAUDE",
-  ]);
+  return envKey(["FREEMODELV3", "CODEX_RELAY_KEY", "CODEX_RELAY_API_KEY", "FREEMODELCLAUDE"]);
 }
 
 type StreamResult =
@@ -147,7 +144,7 @@ async function openaiChatStream(
               "Cache-Control": "no-cache, no-transform",
               "X-Samudra-Provider": providerTag,
               "X-Samudra-Model": model,
-              "X-Samudra-Version": "1.7.1",
+              "X-Samudra-Version": "1.7.2",
             },
           }),
         };
@@ -178,8 +175,6 @@ function isInvalidKey(status: number, body: string): boolean {
 
 function isQuota(body: string): boolean {
   const b = body.toLowerCase();
-  // Codex-relay often says "used up its limit" on INVALID key too — jangan anggap kuota
-  // kecuali jelas insufficient balance / quota tanpa invalid key.
   if (b.includes("invalid_api_key") || b.includes("invalid api key")) return false;
   return (
     b.includes("insufficient balance") ||
@@ -197,8 +192,8 @@ function explainUpstream(tag: string, status: number, body: string): string {
   if (isQuota(body)) {
     return `${tag}: kuota/saldo provider habis. Cek balance di dashboard.`;
   }
-  if (status === 404 || /model_not_found|does not exist|not found/i.test(body)) {
-    return `${tag}: model tidak tersedia. Cek nama model di dashboard Relay.`;
+  if (status === 404 || /model_not_found|does not exist|not found|decommissioned/i.test(body)) {
+    return `${tag}: model tidak tersedia / sudah dihapus provider.`;
   }
   if (status === 429 || /rate.?limit/i.test(body)) {
     return `${tag}: rate limit. Tunggu sebentar.`;
@@ -306,7 +301,7 @@ export const Route = createFileRoute("/api/chat")({
             return Response.json(
               {
                 error:
-                  "V3 sekarang pakai Codex Relay. Ganti FREEMODELV3 ke key sk-… (bukan fe_oa_/fm_).",
+                  "V3 pakai Codex Relay. Ganti FREEMODELV3 ke key sk-… (bukan fe_oa_/fm_).",
               },
               { status: 502 },
             );
@@ -346,7 +341,6 @@ export const Route = createFileRoute("/api/chat")({
               );
               if (res.ok) return res.response;
               last = res;
-              // Key salah → stop, jangan loop semua model
               if (!res.ok && isInvalidKey(res.status, res.body)) {
                 return Response.json(
                   { error: explainUpstream("V3", res.status, res.body) },
@@ -376,10 +370,15 @@ export const Route = createFileRoute("/api/chat")({
 
         if (want === "groq") {
           if (!groqKey) {
-            return Response.json({ error: "V2: set GROQ_API_KEY." }, { status: 503 });
+            return Response.json({ error: "V2: set GROQ_API_KEY di Cloudflare." }, { status: 503 });
           }
+          const preferred = (process.env.GROQ_MODEL || "").trim();
+          const list = preferred
+            ? [preferred, ...GROQ_MODELS.filter((m) => m !== preferred)]
+            : GROQ_MODELS;
+
           let last = "";
-          for (const model of GROQ_MODELS) {
+          for (const model of list) {
             try {
               const upstream = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                 method: "POST",
@@ -400,23 +399,34 @@ export const Route = createFileRoute("/api/chat")({
                   headers: {
                     "Content-Type": "text/event-stream; charset=utf-8",
                     "X-Samudra-Provider": "groq",
-                    "X-Samudra-Version": "1.7.1",
+                    "X-Samudra-Model": model,
+                    "X-Samudra-Version": "1.7.2",
                   },
                 });
               }
               const t = await upstream.text().catch(() => "");
-              last = `${upstream.status} ${t.slice(0, 120)}`;
+              // skip decommissioned, coba model berikutnya
+              if (/decommissioned|not supported|model_/i.test(t)) {
+                last = `${model}: decommissioned/unsupported`;
+                continue;
+              }
               if (upstream.status === 401 || upstream.status === 403) {
                 return Response.json(
-                  { error: "V2: GROQ_API_KEY ditolak. Cek key di console.groq.com." },
+                  { error: "V2: GROQ_API_KEY ditolak. Buat key baru di console.groq.com." },
                   { status: 502 },
                 );
               }
+              last = `${upstream.status} ${t.slice(0, 160)}`;
             } catch (e) {
               last = e instanceof Error ? e.message : "err";
             }
           }
-          return Response.json({ error: `Groq gagal. ${last}` }, { status: 502 });
+          return Response.json(
+            {
+              error: `V2 Groq gagal. ${last || "Cek GROQ_API_KEY & model."}`,
+            },
+            { status: 502 },
+          );
         }
 
         if (k1) {
