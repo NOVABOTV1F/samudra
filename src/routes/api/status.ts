@@ -17,21 +17,23 @@ export const Route = createFileRoute("/api/status")({
     handlers: {
       GET: async () => {
         const v1 = Boolean(envKey(["FREEMODEL_API_KEY", "DEEPSEEK_API_KEY", "FM_API_KEY"]));
-        const v3 = Boolean(envKey(["FREEMODELV3", "FREEMODELCLAUDE", "FREEMODEL_CLAUDE", "FE_OA_KEY"]));
+        const v3 = Boolean(
+          envKey(["FREEMODELV3", "CODEX_RELAY_KEY", "CODEX_RELAY_API_KEY", "FREEMODELCLAUDE"]),
+        );
         const groq = Boolean(envKey(["GROQ_API_KEY"]));
         return Response.json({
-          version: "1.6.9",
+          version: "1.7.0",
           deepseek: v1,
           groq,
           claude: v3,
           models: {
             v1: process.env.DEEPSEEK_MODEL || "deepseek-v4.1-flash",
             v2: process.env.GROQ_MODEL || "llama-3.1-8b-instant",
-            v3: process.env.CLAUDE_MODEL || "claude-mythos-preview",
+            v3: process.env.CLAUDE_MODEL || process.env.V3_MODEL || "claude-opus-5",
           },
           endpoints: {
             v1: "https://api.freemodel.dev/v1",
-            v3: "https://api.freemodel.dev/v1",
+            v3: "https://codex-relay.codes/v1",
           },
           time: new Date().toISOString(),
           ready: v1 || v3 || groq,

@@ -25,7 +25,7 @@ const Body = z.object({
   systemPrompt: z.string().max(8000).optional(),
 });
 
-const DEFAULT_SYSTEM = `You are ZUZUXF_AI / Otak Samudra v1.6.9.
+const DEFAULT_SYSTEM = `You are ZUZUXF_AI / Otak Samudra v1.7.0.
 Help with legal tasks. Match user language (default Indonesian). Prefer clear answers.
 Prefer single-file HTML for web. Images: Google Images URL only.`;
 
@@ -45,20 +45,20 @@ const V1_MODELS = [
   "auto",
 ];
 
-/** V3 — FreeModel OpenAI path. Claude + model yang sering tersedia di akun */
-const V3_BASE = (process.env.CLAUDE_BASE_URL || "https://api.freemodel.dev/v1").replace(
-  /\/$/,
-  "",
-);
+/** V3 — Codex Relay (OpenAI-compatible) */
+const V3_BASE = (
+  process.env.CLAUDE_BASE_URL ||
+  process.env.CODEX_RELAY_BASE_URL ||
+  "https://codex-relay.codes/v1"
+).replace(/\/$/, "");
+
 const V3_MODELS = [
-  "claude-mythos-preview",
-  "claude-sonnet-4",
-  "claude-sonnet-4-20250514",
-  "claude-3-5-sonnet-latest",
+  "claude-opus-5",
   "claude-opus-4",
-  "gpt-6-luna",
-  "gpt-6-sol",
-  "gpt-6-astra",
+  "claude-sonnet-4",
+  "claude-3-5-sonnet-latest",
+  "gpt-5",
+  "gpt-4o",
   "auto",
 ];
 
@@ -80,8 +80,15 @@ function v1Key() {
   return envKey(["FREEMODEL_API_KEY", "DEEPSEEK_API_KEY", "FM_API_KEY"]);
 }
 
+/** V3: key sk- dari codex-relay.codes */
 function v3Key() {
-  return envKey(["FREEMODELV3", "FREEMODELCLAUDE", "FREEMODEL_CLAUDE", "FE_OA_KEY"]);
+  return envKey([
+    "FREEMODELV3",
+    "CODEX_RELAY_KEY",
+    "CODEX_RELAY_API_KEY",
+    "FREEMODELCLAUDE",
+    "FE_OA_KEY",
+  ]);
 }
 
 type StreamResult =
@@ -132,7 +139,7 @@ async function openaiChatStream(
               "Cache-Control": "no-cache, no-transform",
               "X-Samudra-Provider": providerTag,
               "X-Samudra-Model": model,
-              "X-Samudra-Version": "1.6.9",
+              "X-Samudra-Version": "1.7.0",
             },
           }),
         };
@@ -146,7 +153,7 @@ async function openaiChatStream(
     }
   }
 
-  return { ok: false, status: lastStatus, body: lastBody.slice(0, 320) };
+  return { ok: false, status: lastStatus, body: lastBody.slice(0, 360) };
 }
 
 function explainUpstream(tag: string, status: number, body: string): string {
@@ -155,27 +162,29 @@ function explainUpstream(tag: string, status: number, body: string): string {
   if (
     b.includes("insufficient balance") ||
     b.includes("insufficient_quota") ||
+    b.includes("used up its limit") ||
     b.includes("quota") ||
-    b.includes("no credit") ||
     b.includes("balance")
   ) {
-    return `${tag}: kredit FreeModel habis (Insufficient balance). Isi saldo di freemodel.dev → Billing/Usage, lalu coba lagi. Key-nya valid, yang kurang kredit.`;
+    return `${tag}: kuota/saldo habis di provider. Cek dashboard (codex-relay / FreeModel).`;
   }
 
-  if (status === 401 || status === 403 || b.includes("unauthorized") || b.includes("invalid token")) {
-    return `${tag}: key ditolak (${status}). Cek FREEMODELV3 = fe_oa_… lengkap, tanpa spasi.`;
-  }
-
-  if (b.includes("restricted") || b.includes("claude code")) {
-    return `${tag}: endpoint khusus Claude Code. Samudra memakai api.freemodel.dev.`;
+  if (
+    status === 401 ||
+    status === 403 ||
+    b.includes("unauthorized") ||
+    b.includes("invalid_api_key") ||
+    b.includes("invalid api key")
+  ) {
+    return `${tag}: key ditolak (${status}). Cloudflare secret FREEMODELV3 = key sk-… dari codex-relay.codes (tanpa spasi).`;
   }
 
   if (status === 404 || b.includes("model_not_found") || b.includes("does not exist")) {
-    return `${tag}: model tidak tersedia di akunmu. Cek model di freemodel.dev.`;
+    return `${tag}: model tidak tersedia. Coba claude-opus-5 atau model lain di dashboard.`;
   }
 
   if (status === 429 || b.includes("rate")) {
-    return `${tag}: terlalu banyak request. Tunggu sebentar.`;
+    return `${tag}: rate limit. Tunggu sebentar.`;
   }
 
   return `${tag} gagal (${status}): ${body || "tanpa detail"}`;
@@ -240,8 +249,7 @@ export const Route = createFileRoute("/api/chat")({
               );
               if (res.ok) return res.response;
               last = res;
-              // kredit habis → stop early
-              if (!res.ok && /insufficient|balance|quota/i.test(res.body)) {
+              if (!res.ok && /insufficient|balance|quota|used up/i.test(res.body)) {
                 return Response.json(
                   { error: explainUpstream("V1", res.status, res.body) },
                   { status: 402 },
@@ -266,20 +274,20 @@ export const Route = createFileRoute("/api/chat")({
             return Response.json(
               {
                 error:
-                  "V3: secret FREEMODELV3 kosong. Add di Cloudflare → FREEMODELV3 = fe_oa_… → Deploy.",
+                  "V3: set secret FREEMODELV3 = key sk-… dari codex-relay.codes → Deploy.",
               },
               { status: 503 },
             );
           }
 
-          const preferred = (process.env.CLAUDE_MODEL || "").trim();
+          const preferred = (process.env.CLAUDE_MODEL || process.env.V3_MODEL || "claude-opus-5").trim();
           const list = preferred
             ? [preferred, ...V3_MODELS.filter((m) => m !== preferred)]
             : V3_MODELS;
 
           let last: StreamResult | null = null;
 
-          for (const base of [V3_BASE, "https://api.freemodel.dev/v1"]) {
+          for (const base of [V3_BASE, "https://codex-relay.codes/v1"]) {
             for (const model of list) {
               const res = await openaiChatStream(
                 base,
@@ -292,30 +300,7 @@ export const Route = createFileRoute("/api/chat")({
               );
               if (res.ok) return res.response;
               last = res;
-              if (!res.ok && /insufficient|balance|quota/i.test(res.body)) {
-                return Response.json(
-                  { error: explainUpstream("V3", res.status, res.body) },
-                  { status: 402 },
-                );
-              }
-            }
-          }
-
-          // Coba key V1 jika beda (sering 1 key untuk semua)
-          if (k1 && k1 !== k3) {
-            for (const model of list) {
-              const res = await openaiChatStream(
-                "https://api.freemodel.dev/v1",
-                k1,
-                model,
-                system,
-                messages,
-                request.signal,
-                "claude",
-              );
-              if (res.ok) return res.response;
-              last = res;
-              if (!res.ok && /insufficient|balance|quota/i.test(res.body)) {
+              if (!res.ok && /insufficient|balance|quota|used up/i.test(res.body)) {
                 return Response.json(
                   { error: explainUpstream("V3", res.status, res.body) },
                   { status: 402 },
@@ -362,7 +347,7 @@ export const Route = createFileRoute("/api/chat")({
                   headers: {
                     "Content-Type": "text/event-stream; charset=utf-8",
                     "X-Samudra-Provider": "groq",
-                    "X-Samudra-Version": "1.6.9",
+                    "X-Samudra-Version": "1.7.0",
                   },
                 });
               }
