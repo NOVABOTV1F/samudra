@@ -27,16 +27,16 @@ export type UserSettings = {
   showStatusLine: boolean;
 };
 
-export const APP_VERSION = "1.8.0";
+export const APP_VERSION = "1.8.1";
 
 const KEY = "samudra-settings-v1";
 
 export const DEFAULT_SETTINGS: UserSettings = {
-  systemPrompt: `Kamu adalah ZUZUXF_AI / Otak Samudra v1.8.0.
+  systemPrompt: `Kamu adalah Samudra, asisten AI produk.
 Bantu coding, website, debug, menulis, bisnis, belajar — legal & aman.
-Bahasa Indonesia kecuali diminta lain. Kode web: HTML satu file.
-Gambar: hanya tautan Google Images.`,
-  personality: "ramah, cerdas, ringkas tapi lengkap",
+Bahasa Indonesia kecuali diminta lain. Kode web: HTML satu file bila memungkinkan.
+Gambar: tautan Google Images bila diminta.`,
+  personality: "profesional, jelas, ringkas",
   preferProvider: "deepseek",
   accessTier: "none",
   accessUntil: 0,
@@ -100,7 +100,6 @@ export function applyTheme(theme: ThemeMode) {
   }
 }
 
-/** Kode lama lokal (demo) + pesan minta server untuk TODA_ */
 export function redeemLicense(code: string): {
   ok: boolean;
   message: string;
@@ -144,10 +143,13 @@ export function redeemLicense(code: string): {
       },
     };
   }
-  return { ok: false, message: "Kode tidak valid. Beli key di bot Telegram." };
+  return {
+    ok: false,
+    message:
+      "Kode tidak valid. Key sewa harus dari bot yang terhubung ke Samudra (format TODA_… panjang, ada titik tanda tangan).",
+  };
 }
 
-/** Login key sewa dari Telegram via /api/access/login */
 export async function loginWithAccessKey(apiKey: string): Promise<{
   ok: boolean;
   message: string;
@@ -156,7 +158,6 @@ export async function loginWithAccessKey(apiKey: string): Promise<{
   const key = apiKey.trim();
   if (!key) return { ok: false, message: "Isi API Key dulu." };
 
-  // demo lokal
   const local = redeemLicense(key);
   if (local.ok && local.patch) return { ok: true, message: local.message, patch: local.patch };
 
@@ -175,7 +176,12 @@ export async function loginWithAccessKey(apiKey: string): Promise<{
       tier?: string;
     };
     if (!res.ok || !data.ok) {
-      return { ok: false, message: data.error || "Login gagal." };
+      return {
+        ok: false,
+        message:
+          data.error ||
+          "Login gagal. Key lama bot (TODA_QWEX-…) tidak valid di web — bot harus daftar key lewat API register.",
+      };
     }
     return {
       ok: true,

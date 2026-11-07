@@ -1,53 +1,56 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-/* v1.4 Ocean Intelligence — light default */
+/* Samudra — clean product UI (light default) */
 @theme {
-  --color-abyss: #f0f7ff;
-  --color-depth: #e2eef9;
+  --color-abyss: #f5f7fa;
+  --color-depth: #eef2f6;
   --color-tide: #ffffff;
-  --color-lagoon: #d4e8f7;
-  --color-ink: #0a2540;
-  --color-foam: #062038;
-  --color-mist: #4a6f8f;
-  --color-accent: #0ea5e9;
-  --color-accent-dim: #0284c7;
+  --color-lagoon: #e8eef5;
+  --color-ink: #0f172a;
+  --color-foam: #0b1220;
+  --color-mist: #64748b;
+  --color-accent: #2563eb;
+  --color-accent-dim: #1d4ed8;
   --color-ok: #059669;
   --color-danger: #dc2626;
-  --color-border: color-mix(in oklab, #0a2540 12%, transparent);
-  --color-border-strong: color-mix(in oklab, #0a2540 20%, transparent);
+  --color-border: color-mix(in oklab, #0f172a 10%, transparent);
+  --color-border-strong: color-mix(in oklab, #0f172a 16%, transparent);
 
-  --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Fraunces", "Times New Roman", ui-serif, Georgia, serif;
+  --font-sans: "Figtree", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Figtree", ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
   --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
-  --radius-2xl: 28px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-2xl: 22px;
 
-  --shadow-border: 0 0 0 1px color-mix(in oklab, #0a2540 8%, transparent), 0 8px 24px color-mix(in oklab, #0ea5e9 10%, transparent);
-  --shadow-border-hover: 0 0 0 1px color-mix(in oklab, #0ea5e9 30%, transparent), 0 10px 28px color-mix(in oklab, #0ea5e9 14%, transparent);
+  --shadow-border: 0 1px 2px color-mix(in oklab, #0f172a 6%, transparent),
+    0 0 0 1px color-mix(in oklab, #0f172a 6%, transparent);
+  --shadow-border-hover: 0 4px 14px color-mix(in oklab, #2563eb 12%, transparent),
+    0 0 0 1px color-mix(in oklab, #2563eb 22%, transparent);
 }
 
-/* Dark ocean */
 html[data-theme="dark"] {
-  --color-abyss: #061018;
-  --color-depth: #0b1a28;
-  --color-tide: #122536;
-  --color-lagoon: #16324a;
-  --color-ink: #e6f2f8;
-  --color-foam: #f0f9ff;
-  --color-mist: #8aa8b8;
-  --color-accent: #22d3ee;
-  --color-accent-dim: #06b6d4;
+  --color-abyss: #0b1220;
+  --color-depth: #111827;
+  --color-tide: #1a2332;
+  --color-lagoon: #1e293b;
+  --color-ink: #e5eef8;
+  --color-foam: #f8fafc;
+  --color-mist: #94a3b8;
+  --color-accent: #3b82f6;
+  --color-accent-dim: #60a5fa;
   --color-ok: #34d399;
   --color-danger: #f87171;
-  --color-border: color-mix(in oklab, #e6f2f8 12%, transparent);
-  --color-border-strong: color-mix(in oklab, #e6f2f8 20%, transparent);
-  --shadow-border: 0 0 0 1px color-mix(in oklab, #e6f2f8 8%, transparent), 0 8px 24px color-mix(in oklab, #000 35%, transparent);
-  --shadow-border-hover: 0 0 0 1px color-mix(in oklab, #22d3ee 28%, transparent), 0 10px 28px color-mix(in oklab, #22d3ee 12%, transparent);
+  --color-border: color-mix(in oklab, #e5eef8 10%, transparent);
+  --color-border-strong: color-mix(in oklab, #e5eef8 16%, transparent);
+  --shadow-border: 0 1px 2px color-mix(in oklab, #000 40%, transparent),
+    0 0 0 1px color-mix(in oklab, #e5eef8 8%, transparent);
+  --shadow-border-hover: 0 4px 16px color-mix(in oklab, #3b82f6 18%, transparent),
+    0 0 0 1px color-mix(in oklab, #3b82f6 28%, transparent);
 }
 
 @layer base {
@@ -70,9 +73,18 @@ html[data-theme="dark"] {
     cursor: pointer;
   }
 
-  h1, h2, h3 { text-wrap: balance; }
-  p { text-wrap: pretty; }
-  textarea, input { font-size: 16px; }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
+  textarea,
+  input {
+    font-size: 16px;
+  }
 
   :focus-visible {
     outline: 2px solid var(--color-accent);
@@ -81,83 +93,85 @@ html[data-theme="dark"] {
 }
 
 .ocean-scene {
-  background:
-    radial-gradient(90rem 36rem at 50% -12%, color-mix(in oklab, var(--color-accent) 16%, transparent), transparent 58%),
-    radial-gradient(42rem 28rem at 88% 118%, color-mix(in oklab, var(--color-accent) 10%, transparent), transparent 62%),
-    linear-gradient(180deg, var(--color-tide) 0%, var(--color-abyss) 55%, var(--color-depth) 100%);
+  background: linear-gradient(180deg, var(--color-abyss) 0%, var(--color-depth) 100%);
 }
 
 html[data-theme="dark"] .ocean-scene {
-  background:
-    radial-gradient(90rem 36rem at 50% -12%, color-mix(in oklab, #22d3ee 12%, transparent), transparent 58%),
-    radial-gradient(42rem 28rem at 12% 100%, color-mix(in oklab, #0284c7 14%, transparent), transparent 60%),
-    linear-gradient(180deg, #061018 0%, #0a1622 50%, #0d2137 100%);
+  background: linear-gradient(180deg, #0b1220 0%, #0f172a 100%);
 }
 
 .ocean-caustic {
-  background:
-    radial-gradient(28rem 18rem at 28% 18%, color-mix(in oklab, var(--color-tide) 50%, transparent), transparent 70%),
-    radial-gradient(22rem 16rem at 72% 42%, color-mix(in oklab, var(--color-accent) 10%, transparent), transparent 72%);
-  animation: caustic-drift 22s ease-in-out infinite alternate;
-}
-
-@keyframes caustic-drift {
-  from { transform: translate3d(-1.4%, 0, 0); }
-  to { transform: translate3d(2.2%, 1.4%, 0); }
+  background: radial-gradient(
+    60rem 28rem at 50% -10%,
+    color-mix(in oklab, var(--color-accent) 8%, transparent),
+    transparent 70%
+  );
 }
 
 .tide-shimmer {
-  background: linear-gradient(90deg, var(--color-mist) 0%, var(--color-accent) 42%, var(--color-mist) 100%);
-  background-size: 180% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: tide-sweep 1.6s linear infinite;
-}
-
-@keyframes tide-sweep {
-  from { background-position: 100% 0; }
-  to { background-position: -80% 0; }
+  color: var(--color-mist);
 }
 
 .md-body {
   font-size: 0.9375rem;
-  line-height: 1.62;
+  line-height: 1.65;
   color: var(--color-ink);
 }
-.md-body > * + * { margin-top: 0.8em; }
-.md-body h1, .md-body h2, .md-body h3 {
-  font-family: var(--font-display);
-  font-weight: 550;
+.md-body > * + * {
+  margin-top: 0.75em;
+}
+.md-body h1,
+.md-body h2,
+.md-body h3 {
+  font-weight: 600;
   letter-spacing: -0.02em;
-  line-height: 1.25;
+  line-height: 1.3;
   color: var(--color-foam);
 }
-.md-body h1 { font-size: 1.35rem; }
-.md-body h2 { font-size: 1.15rem; }
-.md-body h3 { font-size: 1.05rem; }
+.md-body h1 {
+  font-size: 1.25rem;
+}
+.md-body h2 {
+  font-size: 1.1rem;
+}
+.md-body h3 {
+  font-size: 1rem;
+}
 .md-body a {
   color: var(--color-accent-dim);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
-.md-body ul, .md-body ol { padding-left: 1.2em; }
-.md-body li + li { margin-top: 0.28em; }
+.md-body ul,
+.md-body ol {
+  padding-left: 1.2em;
+}
+.md-body li + li {
+  margin-top: 0.25em;
+}
 .md-body blockquote {
   border-left: 2px solid var(--color-accent);
-  padding-left: 0.9em;
+  padding-left: 0.85em;
   color: var(--color-mist);
 }
 .md-body code {
   font-family: var(--font-mono);
   font-size: 0.84em;
-  background: color-mix(in oklab, var(--color-lagoon) 80%, transparent);
+  background: color-mix(in oklab, var(--color-lagoon) 90%, transparent);
   padding: 0.12em 0.35em;
   border-radius: 6px;
 }
-.md-body pre code { background: none; padding: 0; }
-.md-body table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
-.md-body th, .md-body td {
+.md-body pre code {
+  background: none;
+  padding: 0;
+}
+.md-body table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.md-body th,
+.md-body td {
   border-bottom: 1px solid var(--color-border);
   padding: 0.4em 0.55em;
   text-align: left;
@@ -167,23 +181,9 @@ html[data-theme="dark"] .ocean-scene {
   border-radius: 12px;
 }
 
-.music-bar {
-  position: fixed;
-  left: 0.75rem;
-  right: 0.75rem;
-  bottom: max(0.75rem, env(safe-area-inset-bottom));
-  z-index: 60;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.65rem 0.85rem;
-  border-radius: 16px;
-  background: color-mix(in oklab, #0b1e36 92%, #0ea5e9);
-  color: #f4f9ff;
-  box-shadow: 0 12px 40px color-mix(in oklab, #0b1e36 35%, transparent);
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .ocean-caustic, .tide-shimmer { animation: none; }
-  .tide-shimmer { color: var(--color-mist); background: none; }
+  .ocean-caustic,
+  .tide-shimmer {
+    animation: none;
+  }
 }

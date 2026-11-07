@@ -56,7 +56,6 @@ export function StudioApp() {
   const [dockOpen, setDockOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
-  const [announce] = useState("");
   const [sys, setSys] = useState<SystemStatus | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const busy = Boolean(streamingId);
@@ -90,7 +89,7 @@ export function StudioApp() {
       addMessage(conversationId, {
         role: "assistant",
         content:
-          "LOGIN TERLEBIH DAHULU DI PENGATURAN.\n\nLogin pakai **KEY** dari bot Telegram (Buy Key / Sewa Akses API).\nBuka ⚙️ Pengaturan → tab **Akses** → tempel API Key (TODA_…) → Login.\n\nBot: https://t.me/AccountStoreID_bot",
+          "Akses belum aktif.\n\n1. Beli key di bot Telegram\n2. Buka ⚙️ Pengaturan → **Akses**\n3. Tempel **API Key** (format `TODA_…` bertanda tangan dari bot yang sudah terhubung)\n4. Login\n\nBot: https://t.me/AccountStoreID_bot",
       });
       setSettingsOpen(true);
       return;
@@ -202,7 +201,7 @@ export function StudioApp() {
         : aiVersion === "3"
           ? "V3 Claude"
           : "V2 Groq";
-    return `${v} · ${access} · Samudra ${APP_VERSION}`;
+    return `${v} · ${access} · ${APP_VERSION}`;
   }, [aiVersion, sys]);
 
   const conversationId = chat?.id ?? activeId ?? "";
@@ -211,14 +210,13 @@ export function StudioApp() {
     <TooltipProvider>
       <div className="relative flex h-dvh flex-col overflow-hidden bg-abyss text-ink">
         <OceanBackdrop />
-        <header className="relative z-10 flex items-center gap-2 border-b border-border/60 px-3 py-2">
+        <header className="relative z-10 flex h-12 items-center gap-2 border-b border-border/70 bg-tide/80 px-3 backdrop-blur-md">
           <Button size="icon" aria-label="Menu" onClick={() => setNavOpen(true)}>
             <Menu className="size-4" />
           </Button>
           <WaveMark />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-foam">Samudra</p>
-            {announce ? <p className="truncate text-[11px] text-mist">{announce}</p> : null}
+            <p className="truncate text-sm font-semibold tracking-tight text-foam">Samudra</p>
           </div>
           <SettingsButton open={settingsOpen} onOpenChange={setSettingsOpen} />
           <Button
@@ -232,24 +230,38 @@ export function StudioApp() {
         </header>
 
         <main className="relative z-10 flex min-h-0 flex-1 flex-col">
-          <div className="flex-1 overflow-y-auto px-3 py-4 md:px-4">
-            <div className="mx-auto flex max-w-3xl flex-col gap-3">
+          <div className="flex-1 overflow-y-auto px-3 py-6 md:px-4">
+            <div className="mx-auto flex max-w-2xl flex-col gap-3">
               {(chat?.messages ?? []).length === 0 ? (
-                <div className="space-y-3 rounded-2xl bg-tide/70 p-4 text-sm text-mist ring-1 ring-border/50">
-                  <p className="text-foam">Halo! Aku ZUZUXF_AI / Otak Samudra</p>
-                  <p>Login dulu di Pengaturan → Akses (key TODA_ dari bot Telegram) agar chat AI aktif.</p>
-                  <div className="flex flex-wrap gap-2">
+                <div className="space-y-5 pt-6 text-center">
+                  <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-tide shadow-[var(--shadow-border)]">
+                    <WaveMark className="size-8" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <h1 className="text-xl font-semibold tracking-tight text-foam">Samudra</h1>
+                    <p className="mx-auto max-w-sm text-sm text-mist">
+                      Asisten coding & produk. Login dengan key sewa agar model cloud aktif.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap justify-center gap-2">
                     {HOME_TOOLS.map((t) => (
                       <button
                         key={t.id}
                         type="button"
-                        className="rounded-full bg-depth px-3 py-1.5 text-xs text-foam"
+                        className="rounded-full border border-border bg-tide px-3.5 py-1.5 text-xs font-medium text-ink shadow-sm transition hover:border-accent/40 hover:shadow-[var(--shadow-border-hover)]"
                         onClick={() => setDraft(t.prompt)}
                       >
                         {t.title}
                       </button>
                     ))}
                   </div>
+                  <button
+                    type="button"
+                    className="text-xs font-medium text-accent-dim underline-offset-2 hover:underline"
+                    onClick={() => setSettingsOpen(true)}
+                  >
+                    Buka Pengaturan → login key
+                  </button>
                 </div>
               ) : (
                 (chat?.messages ?? []).map((m) => (
