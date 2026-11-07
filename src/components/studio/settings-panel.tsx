@@ -8,6 +8,7 @@ import {
   applyTheme,
   hasActiveAccess,
   loadSettings,
+  loginWithAccessKey,
   redeemLicense,
   saveSettings,
   type ThemeMode,
@@ -51,7 +52,7 @@ export function SettingsPanel({
 }) {
   const [tab, setTab] = useState<
     "prompt" | "tampilan" | "keys" | "music" | "akun" | "deploy"
-  >("prompt");
+  >("keys");
   const [s, setS] = useState<UserSettings>(loadSettings);
   const [code, setCode] = useState("");
   const [msg, setMsg] = useState("");
@@ -104,8 +105,20 @@ export function SettingsPanel({
     applyTheme(theme);
   }
 
-  function applyCode() {
-    const res = redeemLicense(code);
+  async function applyCode() {
+    const c = code.trim();
+    if (!c) {
+      setMsg("Isi key dulu.");
+      return;
+    }
+    if (c.startsWith("TODA_") || c.startsWith("toda_")) {
+      setMsg("Memverifikasi key…");
+      const res = await loginWithAccessKey(c);
+      setMsg(res.message);
+      if (res.ok && res.patch) persist({ ...s, ...res.patch });
+      return;
+    }
+    const res = redeemLicense(c);
     setMsg(res.message);
     if (res.ok && res.patch) persist({ ...s, ...res.patch });
   }
@@ -121,7 +134,7 @@ export function SettingsPanel({
       return;
     }
     if (!t.url || !isMp3Url(t.url)) {
-      setMsg(`"${t.title}" butuh URL raw .mp3`);
+      setMsg(`\"${t.title}\" butuh URL raw .mp3`);
       return;
     }
     const a = ensureAudio();
@@ -265,29 +278,31 @@ export function SettingsPanel({
             {tab === "keys" ? (
               <div className="space-y-3">
                 <div className="rounded-xl bg-lagoon/80 px-3 py-2 text-xs leading-relaxed text-mist">
-                  <strong className="text-foam">API key tidak diisi user di web.</strong>
+                  <strong className="text-foam">Sewa akses (Buy Key)</strong>
                   <br />
-                  Cloudflare secrets: <code className="text-foam">FREEMODEL_API_KEY</code> (token{" "}
-                  <code className="text-foam">fm_…</code> dari freemodel.in).
+                  Beli di bot Telegram, lalu login pakai key <code className="text-foam">TODA_…</code>
                   <br />
-                  V1 = DeepSeek Pro · V2 = Groq (opsional). Base: https://freemodel.in/v1
+                  Bot: https://t.me/AccountStoreID_bot
+                  <br />
+                  Tanpa login, chat AI tidak dibalas.
                 </div>
                 <p className="text-xs text-mist">
-                  Lisensi: <strong className="text-foam">{accessLabel}</strong>
+                  Status: <strong className="text-foam">{accessLabel}</strong>
+                  {s.accessUser ? ` · ${s.accessUser}` : ""}
                 </p>
-                <label className="block text-xs text-mist">Kode lisensi (opsional)</label>
+                <label className="block text-xs text-mist">API Key sewa (TODA_…)</label>
                 <div className="flex gap-2">
                   <input
                     className="min-w-0 flex-1 rounded-xl border border-border bg-depth px-3 py-2 text-sm"
                     value={code}
                     onChange={(e) => setCode(e.target.value)}
-                    placeholder="SAMUDRA-FREE / 20K / PERM"
+                    placeholder="TODA_….…"
                   />
-                  <Button variant="primary" onClick={applyCode}>
-                    Aktifkan
+                  <Button variant="primary" onClick={() => void applyCode()}>
+                    Login
                   </Button>
                 </div>
-                {msg && tab === "keys" ? <p className="text-xs text-accent-dim">{msg}</p> : null}
+                {msg ? <p className="text-xs text-accent-dim">{msg}</p> : null}
               </div>
             ) : null}
 
@@ -356,7 +371,6 @@ export function SettingsPanel({
                     ))
                   )}
                 </ul>
-                {msg && tab === "music" ? <p className="text-xs text-accent-dim">{msg}</p> : null}
               </div>
             ) : null}
 
