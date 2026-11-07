@@ -10,6 +10,40 @@ import type { ActiveArtifact } from "@/lib/studio/types";
 import { cn } from "@/lib/utils";
 
 export function ArtifactDock({
+  open = true,
+  onOpenChange,
+  artifact,
+  onClose,
+  onCodeChange,
+  onCode,
+  className,
+}: {
+  open?: boolean;
+  onOpenChange?: (v: boolean) => void;
+  artifact: ActiveArtifact | null;
+  onClose: () => void;
+  onCodeChange?: (code: string) => void;
+  onCode?: (code: string) => void;
+  className?: string;
+}) {
+  const setCode = onCodeChange || onCode || (() => undefined);
+
+  if (!open || !artifact) return null;
+
+  return (
+    <ArtifactDockInner
+      artifact={artifact}
+      onClose={() => {
+        onClose();
+        onOpenChange?.(false);
+      }}
+      onCode={setCode}
+      className={className}
+    />
+  );
+}
+
+function ArtifactDockInner({
   artifact,
   onClose,
   onCode,
@@ -20,24 +54,28 @@ export function ArtifactDock({
   onCode: (code: string) => void;
   className?: string;
 }) {
-  const [tab, setTab] = useState<"run" | "code">(artifact.lang ? "run" : "code");
+  const lang = artifact.lang || "txt";
+  const [tab, setTab] = useState<"run" | "code">(lang ? "run" : "code");
   const [frameKey, setFrameKey] = useState(0);
-  const runnable = isRunnable(artifact.lang);
+  const runnable = isRunnable(lang);
 
   const srcDoc = useMemo(
-    () => (runnable ? toRunnableDocument(artifact.lang, artifact.code) : ""),
-    [artifact.code, artifact.lang, runnable],
+    () => (runnable ? toRunnableDocument(lang, artifact.code || "") : ""),
+    [artifact.code, lang, runnable],
   );
 
   return (
     <section
-      className={cn("flex h-full min-h-0 flex-col bg-depth/90", className)}
+      className={cn(
+        "fixed inset-x-0 bottom-0 z-40 flex max-h-[55dvh] min-h-0 flex-col border-t border-border bg-depth/95 backdrop-blur md:inset-y-0 md:right-0 md:left-auto md:max-h-none md:w-[min(100%,24rem)] md:border-t-0 md:border-l",
+        className,
+      )}
       aria-label="Ruang kerja"
     >
       <header className="flex items-center gap-2 border-b border-border px-3 py-2.5">
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm text-foam">{artifact.filename}</p>
-          <p className="font-mono text-[11px] uppercase tracking-wide text-mist">{artifact.lang || "teks"}</p>
+          <p className="truncate text-sm text-foam">{artifact.filename || "file"}</p>
+          <p className="font-mono text-[11px] uppercase tracking-wide text-mist">{lang}</p>
         </div>
         {runnable ? (
           <Button
@@ -51,13 +89,17 @@ export function ArtifactDock({
             {tab === "run" ? <RefreshCw /> : <Play className="ml-px" />}
           </Button>
         ) : null}
-        <CopyButton text={artifact.code} />
+        <CopyButton text={artifact.code || ""} />
         <Button
           size="iconSm"
           aria-label="Unduh berkas"
           onClick={() => {
-            downloadText(artifact.filename, artifact.code, mimeForFilename(artifact.filename));
-            toast.success(`Mengunduh ${artifact.filename}`);
+            downloadText(
+              artifact.filename || "file.txt",
+              artifact.code || "",
+              mimeForFilename(artifact.filename || "file.txt"),
+            );
+            toast.success(`Mengunduh ${artifact.filename || "file"}`);
           }}
         >
           <Download />
@@ -78,17 +120,17 @@ export function ArtifactDock({
         {tab === "run" && runnable ? (
           <iframe
             key={frameKey}
-            title={`Pratinjau ${artifact.filename}`}
-            className="h-full w-full rounded-xl bg-abyss shadow-[var(--shadow-border)]"
+            title={`Pratinjau ${artifact.filename || "file"}`}
+            className="h-full min-h-[12rem] w-full rounded-xl bg-abyss shadow-[var(--shadow-border)]"
             sandbox="allow-scripts allow-modals allow-forms"
             srcDoc={srcDoc}
           />
         ) : (
           <textarea
-            value={artifact.code}
+            value={artifact.code || ""}
             onChange={(event) => onCode(event.target.value)}
             spellCheck={false}
-            className="h-full w-full resize-none rounded-xl bg-abyss p-3 font-mono text-[12.5px] leading-relaxed text-foam shadow-[var(--shadow-border)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70"
+            className="h-full min-h-[12rem] w-full resize-none rounded-xl bg-abyss p-3 font-mono text-[12.5px] leading-relaxed text-foam shadow-[var(--shadow-border)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70"
             aria-label="Sunting kode"
           />
         )}

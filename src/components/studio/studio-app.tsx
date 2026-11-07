@@ -1,7 +1,7 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { Menu, PanelRight, X } from "lucide-react";
+import { Menu, PanelRight } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Toaster, toast } from "sonner";
+import { Toaster } from "sonner";
 import { AdminPanel } from "@/components/studio/admin-panel";
 import { ArtifactDock } from "@/components/studio/artifact-dock";
 import { Composer } from "@/components/studio/composer";
@@ -26,12 +26,7 @@ import {
   HOME_TOOLS,
 } from "@/lib/studio/settings";
 import { selectActiveChat, useStudioStore } from "@/lib/studio/store";
-import {
-  STARTERS,
-  BLANK_HTML,
-  type ActiveArtifact,
-  type ImageVersion,
-} from "@/lib/studio/types";
+import { type ActiveArtifact, type ImageVersion } from "@/lib/studio/types";
 
 function wantsImage(text: string) {
   return /\b(gambar|image|foto|lukis|draw|buatkan\s+gambar|generate\s+image)\b/i.test(text);
@@ -61,7 +56,7 @@ export function StudioApp() {
   const [dockOpen, setDockOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
-  const [announce, setAnnounce] = useState("");
+  const [announce] = useState("");
   const [sys, setSys] = useState<SystemStatus | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const busy = Boolean(streamingId);
@@ -171,7 +166,17 @@ export function StudioApp() {
       }
 
       const found = extractArtifacts(assembled, assistantId).filter((item) => item.runnable);
-      if (found[0]) openArtifact(found[0]);
+      if (found[0]) {
+        openArtifact({
+          conversationId,
+          messageId: assistantId,
+          artifactId: found[0].id,
+          lang: found[0].lang,
+          code: found[0].code,
+          filename: found[0].filename,
+        });
+        setDockOpen(true);
+      }
     } finally {
       setStreaming(null);
       abortRef.current = null;
@@ -181,6 +186,11 @@ export function StudioApp() {
   function stop() {
     abortRef.current?.abort();
     setStreaming(null);
+  }
+
+  function handleRunArtifact(a: ActiveArtifact) {
+    openArtifact(a);
+    setDockOpen(true);
   }
 
   const statusLine = useMemo(() => {
@@ -194,6 +204,8 @@ export function StudioApp() {
           : "V2 Groq";
     return `${v} · ${access} · Samudra ${APP_VERSION}`;
   }, [aiVersion, sys]);
+
+  const conversationId = chat?.id ?? activeId ?? "";
 
   return (
     <TooltipProvider>
@@ -209,7 +221,12 @@ export function StudioApp() {
             {announce ? <p className="truncate text-[11px] text-mist">{announce}</p> : null}
           </div>
           <SettingsButton open={settingsOpen} onOpenChange={setSettingsOpen} />
-          <Button size="icon" aria-label="Artifact" onClick={() => setDockOpen(true)}>
+          <Button
+            size="icon"
+            aria-label="Artifact"
+            onClick={() => setDockOpen(true)}
+            disabled={!artifact}
+          >
             <PanelRight className="size-4" />
           </Button>
         </header>
@@ -236,7 +253,13 @@ export function StudioApp() {
                 </div>
               ) : (
                 (chat?.messages ?? []).map((m) => (
-                  <MessageCard key={m.id} message={m} onOpenArtifact={openArtifact} />
+                  <MessageCard
+                    key={m.id}
+                    message={m}
+                    conversationId={conversationId}
+                    streaming={streamingId === m.id}
+                    onRun={handleRunArtifact}
+                  />
                 ))
               )}
             </div>
@@ -280,7 +303,7 @@ export function StudioApp() {
         <ArtifactDock
           open={dockOpen}
           onOpenChange={setDockOpen}
-          artifact={artifact as ActiveArtifact | null}
+          artifact={artifact}
           onClose={closeArtifact}
           onCodeChange={updateArtifactCode}
         />
