@@ -27,16 +27,15 @@ export type UserSettings = {
   showStatusLine: boolean;
 };
 
-export const APP_VERSION = "1.8.1";
+export const APP_VERSION = "1.8.2";
 
 const KEY = "samudra-settings-v1";
 
 export const DEFAULT_SETTINGS: UserSettings = {
-  systemPrompt: `Kamu adalah Samudra, asisten AI produk.
-Bantu coding, website, debug, menulis, bisnis, belajar — legal & aman.
-Bahasa Indonesia kecuali diminta lain. Kode web: HTML satu file bila memungkinkan.
-Gambar: tautan Google Images bila diminta.`,
-  personality: "profesional, jelas, ringkas",
+  systemPrompt: `Kamu adalah Samudra, asisten AI.
+Bantu coding, website, debug, menulis, bisnis, belajar.
+Bahasa Indonesia kecuali diminta lain.`,
+  personality: "jelas dan ringkas",
   preferProvider: "deepseek",
   accessTier: "none",
   accessUntil: 0,
@@ -111,11 +110,7 @@ export function redeemLicense(code: string): {
   const now = Date.now();
 
   if (c.startsWith("TODA_") || c.startsWith("toda_")) {
-    return {
-      ok: false,
-      needServer: true,
-      message: "Verifikasi key ke server…",
-    };
+    return { ok: false, needServer: true, message: "Verifikasi key ke server…" };
   }
 
   if (up.startsWith("FREE-1D") || up === "SAMUDRA-FREE") {
@@ -145,8 +140,7 @@ export function redeemLicense(code: string): {
   }
   return {
     ok: false,
-    message:
-      "Kode tidak valid. Key sewa harus dari bot yang terhubung ke Samudra (format TODA_… panjang, ada titik tanda tangan).",
+    message: "Key tidak valid. Beli di bot Telegram, dapat key TODA_… lalu login di sini.",
   };
 }
 
@@ -180,12 +174,12 @@ export async function loginWithAccessKey(apiKey: string): Promise<{
         ok: false,
         message:
           data.error ||
-          "Login gagal. Key lama bot (TODA_QWEX-…) tidak valid di web — bot harus daftar key lewat API register.",
+          "Key ditolak. Pastikan key dari bot (Approve sewa) yang sudah terhubung Samudra.",
       };
     }
     return {
       ok: true,
-      message: `Login OK · aktif sampai ${data.untilLabel || "-"}`,
+      message: `Login berhasil · aktif sampai ${data.untilLabel || "-"}`,
       patch: {
         accessTier: (data.tier as AccessTier) || "paid",
         accessUntil: data.until || Date.now() + 86400000,
@@ -194,7 +188,7 @@ export async function loginWithAccessKey(apiKey: string): Promise<{
       },
     };
   } catch {
-    return { ok: false, message: "Gagal hubungi server login." };
+    return { ok: false, message: "Gagal hubungi server. Cek koneksi." };
   }
 }
 
@@ -205,18 +199,18 @@ export function hasActiveAccess(s: UserSettings): boolean {
 }
 
 export function accessRemainingLabel(s: UserSettings): string {
-  if (s.accessTier === "permanent") return "Permanent ∞";
-  if (s.accessTier === "none" || s.accessUntil <= Date.now()) return "Belum aktif";
+  if (s.accessTier === "permanent") return "Permanent";
+  if (s.accessTier === "none" || s.accessUntil <= Date.now()) return "Belum login";
   const ms = s.accessUntil - Date.now();
   const h = Math.floor(ms / 3600000);
   const d = Math.floor(h / 24);
-  if (d >= 1) return `${d} hari ${h % 24} jam tersisa`;
+  if (d >= 1) return `${d}h ${h % 24}j`;
   const m = Math.floor((ms % 3600000) / 60000);
-  return `${h} jam ${m} mnt tersisa`;
+  return `${h}j ${m}m`;
 }
 
 export const LOGIN_REQUIRED_MSG =
-  "LOGIN TERLEBIH DAHULU DI PENGATURAN — LOGIN PAKAI KEY DAN BUY KEY (bot Telegram).";
+  "Login dulu di Pengaturan → Akses (key dari bot Telegram).";
 
 export const ADMIN_TRIGGER = "/SAMUDRA.PANEL";
 export const ADMIN_USER = "ZUZUXF";
@@ -228,36 +222,11 @@ export const ADMIN_KEY_ALIASES = [
 ];
 
 export const QUICK_ACTIONS = [
-  { id: "coding", title: "Coding", blurb: "Kode siap jalan", prompt: "Bantu coding lengkap, rapi, bisa dijalankan. Topik:" },
-  { id: "website", title: "Website", blurb: "HTML satu file", prompt: "Buat website HTML satu file lengkap, responsif, modern." },
-  { id: "debug", title: "Debug", blurb: "Perbaiki error", prompt: "Debug kode ini: temukan error, perbaiki. Kode:\n" },
-  { id: "toko", title: "Toko online", blurb: "Produk + WA", prompt: "Buat halaman toko online HTML: produk, harga, tombol WhatsApp." },
-  { id: "belajar", title: "Belajar", blurb: "Langkah + soal", prompt: "Jelaskan untuk pemula, langkah demi langkah + 3 soal:" },
-  { id: "menulis", title: "Menulis", blurb: "Teks siap pakai", prompt: "Tulis teks siap pakai. Kebutuhan:" },
-  { id: "bisnis", title: "Bisnis", blurb: "Strategi", prompt: "Strategi bisnis praktis. Konteks:" },
-  { id: "analisis", title: "Analisis", blurb: "Pro-kontra", prompt: "Analisis terstruktur: pro-kontra, risiko, rekomendasi:" },
-  { id: "terjemah", title: "Terjemah", blurb: "ID ↔ EN", prompt: "Terjemahkan teks berikut dengan natural:" },
-  { id: "seo", title: "SEO", blurb: "Judul + meta", prompt: "Buatkan judul SEO, meta description, dan 5 keyword untuk:" },
-  { id: "caption", title: "Caption", blurb: "IG + hashtag", prompt: "Buat 5 caption Instagram + hashtag untuk:" },
-  { id: "email", title: "Email", blurb: "Formal", prompt: "Tulis email profesional untuk:" },
-  { id: "wa", title: "Pesan WA", blurb: "Template", prompt: "Buat template WhatsApp sopan untuk:" },
-  { id: "landing", title: "Landing", blurb: "Hero + CTA", prompt: "Buat landing page HTML elegan." },
-  { id: "python", title: "Python", blurb: "Script", prompt: "Tulis script Python lengkap + cara jalankan:" },
-  { id: "js", title: "JavaScript", blurb: "Fungsi", prompt: "Tulis fungsi JavaScript + contoh:" },
-  { id: "ide", title: "Brainstorm", blurb: "10 ide", prompt: "Berikan 10 ide praktis untuk:" },
-  { id: "ringkas", title: "Ringkas", blurb: "Inti teks", prompt: "Ringkas teks ini jadi poin penting:" },
-  { id: "faq", title: "FAQ", blurb: "8 tanya-jawab", prompt: "Buat 8 FAQ dan jawaban untuk:" },
-  { id: "checklist", title: "Checklist", blurb: "Daftar cek", prompt: "Buat checklist lengkap untuk:" },
-  { id: "harga", title: "Harga jual", blurb: "Margin", prompt: "Bantu tentukan harga jual + margin untuk:" },
-  { id: "promo", title: "Promo", blurb: "5 ide", prompt: "Buat 5 ide promo toko untuk:" },
-  { id: "portfolio", title: "Portfolio", blurb: "Halaman profil", prompt: "Buat halaman portfolio HTML satu file." },
-  { id: "game", title: "Mini game", blurb: "HTML game", prompt: "Buat mini game HTML satu file bertema:" },
-  { id: "error", title: "Jelaskan error", blurb: "Arti + fix", prompt: "Jelaskan error ini dan cara perbaiki:\n" },
-  { id: "readme", title: "README", blurb: "Docs", prompt: "Tulis README markdown untuk proyek:" },
-  { id: "slogan", title: "Slogan", blurb: "Tagline", prompt: "Buat 10 slogan untuk:" },
-  { id: "rencana", title: "Rencana", blurb: "Langkah", prompt: "Buatkan rencana langkah praktis untuk:" },
-  { id: "math", title: "Matematika", blurb: "Hitung", prompt: "Selesaikan soal ini langkah demi langkah:" },
-  { id: "apaaja", title: "Apa saja", blurb: "Bebas", prompt: "Saya butuh bantuan untuk:" },
+  { id: "coding", title: "Coding", blurb: "Kode", prompt: "Bantu coding lengkap:" },
+  { id: "website", title: "Website", blurb: "HTML", prompt: "Buat website HTML satu file." },
+  { id: "debug", title: "Debug", blurb: "Error", prompt: "Debug kode ini:\n" },
+  { id: "toko", title: "Toko", blurb: "Online", prompt: "Buat halaman toko online HTML + WA." },
+  { id: "belajar", title: "Belajar", blurb: "Materi", prompt: "Jelaskan untuk pemula:" },
 ] as const;
 
-export const HOME_TOOLS = QUICK_ACTIONS.slice(0, 5);
+export const HOME_TOOLS = QUICK_ACTIONS;
