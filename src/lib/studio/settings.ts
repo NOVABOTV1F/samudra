@@ -11,6 +11,7 @@ export type UserSettings = {
   accessTier: AccessTier;
   accessUntil: number;
   licenseCode: string;
+  accessUser: string;
   musicEnabled: boolean;
   musicAutoPlay: boolean;
   gmailEmail: string;
@@ -26,12 +27,12 @@ export type UserSettings = {
   showStatusLine: boolean;
 };
 
-export const APP_VERSION = "1.6.6";
+export const APP_VERSION = "1.8.0";
 
 const KEY = "samudra-settings-v1";
 
 export const DEFAULT_SETTINGS: UserSettings = {
-  systemPrompt: `Kamu adalah ZUZUXF_AI / Otak Samudra v1.6.6.
+  systemPrompt: `Kamu adalah ZUZUXF_AI / Otak Samudra v1.8.0.
 Bantu coding, website, debug, menulis, bisnis, belajar — legal & aman.
 Bahasa Indonesia kecuali diminta lain. Kode web: HTML satu file.
 Gambar: hanya tautan Google Images.`,
@@ -40,6 +41,7 @@ Gambar: hanya tautan Google Images.`,
   accessTier: "none",
   accessUntil: 0,
   licenseCode: "",
+  accessUser: "",
   musicEnabled: true,
   musicAutoPlay: false,
   gmailEmail: "",
@@ -98,39 +100,96 @@ export function applyTheme(theme: ThemeMode) {
   }
 }
 
+/** Kode lama lokal (demo) + pesan minta server untuk TODA_ */
 export function redeemLicense(code: string): {
   ok: boolean;
   message: string;
   patch?: Partial<UserSettings>;
+  needServer?: boolean;
 } {
-  const c = code.trim().toUpperCase();
+  const c = code.trim();
+  const up = c.toUpperCase();
   const now = Date.now();
-  if (c.startsWith("FREE-1D") || c === "SAMUDRA-FREE") {
+
+  if (c.startsWith("TODA_") || c.startsWith("toda_")) {
+    return {
+      ok: false,
+      needServer: true,
+      message: "Verifikasi key ke server…",
+    };
+  }
+
+  if (up.startsWith("FREE-1D") || up === "SAMUDRA-FREE") {
     return {
       ok: true,
       message: "Akses gratis 24 jam aktif.",
-      patch: { accessTier: "free", accessUntil: now + 24 * 60 * 60 * 1000, licenseCode: c },
+      patch: { accessTier: "free", accessUntil: now + 24 * 60 * 60 * 1000, licenseCode: up },
     };
   }
-  if (c.startsWith("PAID-3W") || c === "SAMUDRA-20K") {
+  if (up.startsWith("PAID-3W") || up === "SAMUDRA-20K") {
     return {
       ok: true,
       message: "Akses berbayar 3 minggu aktif.",
-      patch: { accessTier: "paid", accessUntil: now + 21 * 24 * 60 * 60 * 1000, licenseCode: c },
+      patch: { accessTier: "paid", accessUntil: now + 21 * 24 * 60 * 60 * 1000, licenseCode: up },
     };
   }
-  if (c.startsWith("PERM") || c === "SAMUDRA-PERM") {
+  if (up.startsWith("PERM") || up === "SAMUDRA-PERM") {
     return {
       ok: true,
       message: "Akses permanen aktif.",
       patch: {
         accessTier: "permanent",
         accessUntil: now + 100 * 365 * 24 * 60 * 60 * 1000,
-        licenseCode: c,
+        licenseCode: up,
       },
     };
   }
-  return { ok: false, message: "Kode tidak valid." };
+  return { ok: false, message: "Kode tidak valid. Beli key di bot Telegram." };
+}
+
+/** Login key sewa dari Telegram via /api/access/login */
+export async function loginWithAccessKey(apiKey: string): Promise<{
+  ok: boolean;
+  message: string;
+  patch?: Partial<UserSettings>;
+}> {
+  const key = apiKey.trim();
+  if (!key) return { ok: false, message: "Isi API Key dulu." };
+
+  // demo lokal
+  const local = redeemLicense(key);
+  if (local.ok && local.patch) return { ok: true, message: local.message, patch: local.patch };
+
+  try {
+    const res = await fetch("/api/access?action=login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ apiKey: key }),
+    });
+    const data = (await res.json()) as {
+      ok?: boolean;
+      error?: string;
+      username?: string;
+      until?: number;
+      untilLabel?: string;
+      tier?: string;
+    };
+    if (!res.ok || !data.ok) {
+      return { ok: false, message: data.error || "Login gagal." };
+    }
+    return {
+      ok: true,
+      message: `Login OK · aktif sampai ${data.untilLabel || "-"}`,
+      patch: {
+        accessTier: (data.tier as AccessTier) || "paid",
+        accessUntil: data.until || Date.now() + 86400000,
+        licenseCode: key,
+        accessUser: data.username || "",
+      },
+    };
+  } catch {
+    return { ok: false, message: "Gagal hubungi server login." };
+  }
 }
 
 export function hasActiveAccess(s: UserSettings): boolean {
@@ -150,6 +209,9 @@ export function accessRemainingLabel(s: UserSettings): string {
   return `${h} jam ${m} mnt tersisa`;
 }
 
+export const LOGIN_REQUIRED_MSG =
+  "LOGIN TERLEBIH DAHULU DI PENGATURAN — LOGIN PAKAI KEY DAN BUY KEY (bot Telegram).";
+
 export const ADMIN_TRIGGER = "/SAMUDRA.PANEL";
 export const ADMIN_USER = "ZUZUXF";
 export const ADMIN_KEY = "DEV=ZUZUXF_AI=™X10WDEV";
@@ -159,7 +221,6 @@ export const ADMIN_KEY_ALIASES = [
   "DEV=ZUZUXF_AI=X10WDEV",
 ];
 
-/** ~30 tools total */
 export const QUICK_ACTIONS = [
   { id: "coding", title: "Coding", blurb: "Kode siap jalan", prompt: "Bantu coding lengkap, rapi, bisa dijalankan. Topik:" },
   { id: "website", title: "Website", blurb: "HTML satu file", prompt: "Buat website HTML satu file lengkap, responsif, modern." },
@@ -193,5 +254,4 @@ export const QUICK_ACTIONS = [
   { id: "apaaja", title: "Apa saja", blurb: "Bebas", prompt: "Saya butuh bantuan untuk:" },
 ] as const;
 
-/** Hanya 5 di beranda */
 export const HOME_TOOLS = QUICK_ACTIONS.slice(0, 5);
