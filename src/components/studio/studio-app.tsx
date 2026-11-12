@@ -19,9 +19,7 @@ import { extractArtifacts } from "@/lib/studio/parse";
 import {
   ADMIN_TRIGGER,
   APP_VERSION,
-  accessRemainingLabel,
   applyTheme,
-  hasActiveAccess,
   loadSettings,
   HOME_TOOLS,
 } from "@/lib/studio/settings";
@@ -57,6 +55,7 @@ export function StudioApp() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const [sys, setSys] = useState<SystemStatus | null>(null);
+  const [welcome, setWelcome] = useState("Halo! Aku Samudra AI");
   const abortRef = useRef<AbortController | null>(null);
   const busy = Boolean(streamingId);
 
@@ -64,6 +63,12 @@ export function StudioApp() {
     hydrate();
     applyTheme(loadSettings().theme);
     void fetchSystemStatus().then(setSys).catch(() => setSys(null));
+    try {
+      const w = localStorage.getItem("samudra-welcome");
+      if (w?.trim()) setWelcome(w.trim());
+    } catch {
+      /* */
+    }
   }, [hydrate]);
 
   function ensureChat() {
@@ -78,20 +83,6 @@ export function StudioApp() {
     if (prompt === ADMIN_TRIGGER || prompt.toUpperCase() === "/SAMUDRA.PANEL") {
       setDraft("");
       setAdminOpen(true);
-      return;
-    }
-
-    const gate = loadSettings();
-    if (!hasActiveAccess(gate)) {
-      const conversationId = ensureChat();
-      setDraft("");
-      addMessage(conversationId, { role: "user", content: prompt });
-      addMessage(conversationId, {
-        role: "assistant",
-        content:
-          "Akses belum aktif.\n\n1. Beli key di bot Telegram\n2. Buka ⚙️ Pengaturan → **Akses**\n3. Tempel **API Key** (format `TODA_…` bertanda tangan dari bot yang sudah terhubung)\n4. Login\n\nBot: https://t.me/AccountStoreID_bot",
-      });
-      setSettingsOpen(true);
       return;
     }
 
@@ -193,15 +184,21 @@ export function StudioApp() {
   }
 
   const statusLine = useMemo(() => {
-    const s = loadSettings();
-    const access = accessRemainingLabel(s);
     const v =
+      aiVersion === "1" ? "V1 DeepSeek" : aiVersion === "3" ? "V3 Claude" : "V2 Groq";
+    const ready =
       aiVersion === "1"
-        ? "V1 DeepSeek"
-        : aiVersion === "3"
-          ? "V3 Claude"
-          : "V2 Groq";
-    return `${v} · ${access} · ${APP_VERSION}`;
+        ? sys?.deepseek
+          ? "siap"
+          : "cek key"
+        : aiVersion === "2"
+          ? sys?.groq
+            ? "siap"
+            : "cek key"
+          : sys?.claude
+            ? "siap"
+            : "cek key";
+    return `${v} · ${ready} · Samudra ${APP_VERSION}`;
   }, [aiVersion, sys]);
 
   const conversationId = chat?.id ?? activeId ?? "";
@@ -210,13 +207,13 @@ export function StudioApp() {
     <TooltipProvider>
       <div className="relative flex h-dvh flex-col overflow-hidden bg-abyss text-ink">
         <OceanBackdrop />
-        <header className="relative z-10 flex h-12 items-center gap-2 border-b border-border/70 bg-tide/80 px-3 backdrop-blur-md">
+        <header className="relative z-10 flex h-12 items-center gap-2 border-b border-border/60 bg-tide/75 px-3 backdrop-blur-md">
           <Button size="icon" aria-label="Menu" onClick={() => setNavOpen(true)}>
             <Menu className="size-4" />
           </Button>
-          <WaveMark />
+          <WaveMark className="size-7" />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold tracking-tight text-foam">Samudra</p>
+            <p className="truncate text-sm font-semibold tracking-tight text-foam">Samudra AI</p>
           </div>
           <SettingsButton open={settingsOpen} onOpenChange={setSettingsOpen} />
           <Button
@@ -233,14 +230,14 @@ export function StudioApp() {
           <div className="flex-1 overflow-y-auto px-3 py-6 md:px-4">
             <div className="mx-auto flex max-w-2xl flex-col gap-3">
               {(chat?.messages ?? []).length === 0 ? (
-                <div className="space-y-5 pt-6 text-center">
-                  <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-tide shadow-[var(--shadow-border)]">
-                    <WaveMark className="size-8" />
+                <div className="space-y-5 pt-8 text-center">
+                  <div className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-tide shadow-[var(--shadow-border)]">
+                    <WaveMark className="size-10" />
                   </div>
-                  <div className="space-y-1.5">
-                    <h1 className="text-xl font-semibold tracking-tight text-foam">Samudra</h1>
+                  <div className="space-y-2">
+                    <h1 className="text-xl font-semibold tracking-tight text-foam">{welcome}</h1>
                     <p className="mx-auto max-w-sm text-sm text-mist">
-                      Asisten coding & produk. Login dengan key sewa agar model cloud aktif.
+                      Tanya apa saja — coding, website, bisnis, belajar. Pilih V1 / V2 / V3 di bawah.
                     </p>
                   </div>
                   <div className="flex flex-wrap justify-center gap-2">
@@ -255,13 +252,6 @@ export function StudioApp() {
                       </button>
                     ))}
                   </div>
-                  <button
-                    type="button"
-                    className="text-xs font-medium text-accent-dim underline-offset-2 hover:underline"
-                    onClick={() => setSettingsOpen(true)}
-                  >
-                    Buka Pengaturan → login key
-                  </button>
                 </div>
               ) : (
                 (chat?.messages ?? []).map((m) => (
